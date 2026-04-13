@@ -149,7 +149,7 @@ export default function ChatScreen({ route, navigation }) {
 
     const triggerToast = (msg, icon = 'notifications', color = '#00e5ff') => {
         setToast({ visible: true, message: msg, icon, color });
-        setTimeout(() => setToast({ visible: false, message: '', icon: 'notifications', color: '#00e5ff' }), 3000);
+        setTimeout(() => setToast({ visible: false, message: '', icon: 'notifications', color: '#00e5ff' }), 4000);
     };
 
     const handleToggleStar = async () => {
@@ -178,7 +178,7 @@ export default function ChatScreen({ route, navigation }) {
                 notificationId,
                 messagePreview: lastMsgText
             });
-            triggerToast(`Reminder set for ${minutes} minutes!`, "timer", "#00e5ff");
+            triggerToast(`Remind to reply in ${minutes} min`, "timer", "#00e5ff");
         }
     };
     
@@ -458,7 +458,7 @@ export default function ChatScreen({ route, navigation }) {
         // Hardcode 5 minutes for demo
         const id = await scheduleMessageReminder(text, friendName, 5);
         if (id) {
-            alert(`Reminder set for 5 minutes from now!`);
+            triggerToast("Remind to reply in 5 min", "timer", "#00e5ff");
         }
     };
 

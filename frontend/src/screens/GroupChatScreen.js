@@ -135,7 +135,7 @@ export default function GroupChatScreen({ route, navigation }) {
 
     const triggerToast = (msg, icon = 'notifications', color = '#00e5ff') => {
         setToast({ visible: true, message: msg, icon, color });
-        setTimeout(() => setToast({ visible: false, message: '', icon: 'notifications', color: '#00e5ff' }), 3000);
+        setTimeout(() => setToast({ visible: false, message: '', icon: 'notifications', color: '#00e5ff' }), 4000);
     };
 
     const handleToggleStar = async () => {
@@ -168,7 +168,7 @@ export default function GroupChatScreen({ route, navigation }) {
                 notificationId,
                 messagePreview: lastMsgText
             });
-            triggerToast(`Group reminder set for ${minutes} minutes!`, "timer", "#00e5ff");
+            triggerToast(`Remind to reply in ${minutes} min`, "timer", "#00e5ff");
         }
     };
 
