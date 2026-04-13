@@ -50,7 +50,7 @@ export default function ChatScreen({ route, navigation }) {
     const [translatingMsgId, setTranslatingMsgId] = useState(null);
     const [downloadingMsgId, setDownloadingMsgId] = useState(null);
     const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
-    const { messages, sendMessage, setMessages, friends, fetchFriends, fetchHistory, markAsSeen } = useChatStore();
+    const { messages, sendMessage, setMessages, friends, fetchFriends, toggleStarFriend, fetchHistory, markAsSeen } = useChatStore();
     const { callUser, callStatus } = useCallStore();
     const { isOnline, isScanning, startScan, connectedPeer } = useOfflineP2pStore();
     const { user, token } = useAuthStore();
