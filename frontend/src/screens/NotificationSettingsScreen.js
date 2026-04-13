@@ -16,14 +16,14 @@ export default function NotificationSettingsScreen({ navigation }) {
         showPreviews,
         notificationSounds,
         vibrationEnabled,
-        setNotificationsEnabled,
-        setShowPreviews,
         setNotificationSounds,
-        setVibrationEnabled
+        setVibrationEnabled,
+        activeReminders,
+        removeReminder
     } = usePreferencesStore();
 
     const triggerTestNotification = async () => {
-        if (!notificationsEnabled) return;
+        if (!notificationsEnabled || !Notifications) return;
 
         await Notifications.scheduleNotificationAsync({
             content: {
@@ -33,6 +33,23 @@ export default function NotificationSettingsScreen({ navigation }) {
             },
             trigger: null, // Send immediately
         });
+    };
+
+    const handleCancelReminder = async (notificationId) => {
+        if (Notifications) {
+            await Notifications.cancelScheduledNotificationAsync(notificationId);
+        }
+        removeReminder(notificationId);
+    };
+
+    const formatTimeRemaining = (targetTimeStr) => {
+        const target = new Date(targetTimeStr);
+        const diff = target.getTime() - Date.now();
+        if (diff <= 0) return 'Just now';
+        
+        const mins = Math.floor(diff / 60000);
+        if (mins < 60) return `in ${mins}m`;
+        return `in ${Math.floor(mins / 60)}h ${mins % 60}m`;
     };
 
     const SettingRow = ({ icon, title, description, value, onToggle, disabled = false }) => (
@@ -113,6 +130,27 @@ export default function NotificationSettingsScreen({ navigation }) {
                         Use this to verify your alert settings are working correctly on your device.
                     </Text>
                 </View>
+
+                {activeReminders?.length > 0 && (
+                    <View style={{ marginTop: 32, paddingBottom: 40 }}>
+                        <Text style={styles.sectionTitle}>ACTIVE REPLY REMINDERS</Text>
+                        {activeReminders.map((reminder) => (
+                            <View key={reminder.notificationId} style={styles.reminderCard}>
+                                <View style={styles.reminderInfo}>
+                                    <Text style={styles.reminderFriend}>{reminder.friendName}</Text>
+                                    <Text style={styles.reminderPreview} numberOfLines={1}>"{reminder.messagePreview}"</Text>
+                                    <Text style={styles.reminderTime}>Alerting {formatTimeRemaining(reminder.targetTime)}</Text>
+                                </View>
+                                <TouchableOpacity 
+                                    style={styles.cancelBtn} 
+                                    onPress={() => handleCancelReminder(reminder.notificationId)}
+                                >
+                                    <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+                                </TouchableOpacity>
+                            </View>
+                        ))}
+                    </View>
+                )}
             </ScrollView>
         </View>
     );
@@ -214,5 +252,35 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginTop: 12,
         paddingHorizontal: 40,
+    },
+    reminderCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#1A1B22',
+        padding: 16,
+        borderRadius: 12,
+        marginBottom: 8,
+    },
+    reminderInfo: {
+        flex: 1,
+    },
+    reminderFriend: {
+        color: '#FFF',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    reminderPreview: {
+        color: '#8A8D9F',
+        fontSize: 14,
+        marginTop: 2,
+    },
+    reminderTime: {
+        color: '#00e5ff',
+        fontSize: 12,
+        fontWeight: 'bold',
+        marginTop: 4,
+    },
+    cancelBtn: {
+        padding: 8,
     }
 });

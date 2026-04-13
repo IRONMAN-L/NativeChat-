@@ -16,9 +16,9 @@ import { useAuthStore } from '../store/authStore';
 import { useCallStore } from '../store/callStore';
 import { useOfflineP2pStore, isP2PSupported } from '../store/offlineP2pStore';
 import { usePreferencesStore } from '../store/preferencesStore';
+import { scheduleMessageReminder } from '../utils/reminderUtils';
 import { getThemeColors } from '../theme/colors';
 import { translateMessage } from '../utils/translate';
-import { scheduleMessageReminder } from '../utils/reminderUtils';
 
 import { API_URL } from '../config'; // Use centralized config
 
@@ -54,8 +54,9 @@ export default function ChatScreen({ route, navigation }) {
     const { callUser, callStatus } = useCallStore();
     const { isOnline, isScanning, startScan, connectedPeer } = useOfflineP2pStore();
     const { user, token } = useAuthStore();
-    const { theme, chatWallpaper } = usePreferencesStore();
+    const { theme, chatWallpaper, addReminder } = usePreferencesStore();
     const colors = getThemeColors(theme);
+    const [showReminderMenu, setShowReminderMenu] = useState(false);
     const flatListRef = useRef(null);
     
     // Voice Message states
@@ -130,6 +131,12 @@ export default function ChatScreen({ route, navigation }) {
                                 <Text style={styles.offlineText}>{isScanning ? 'Scanning...' : connectedPeer ? 'Local Link' : 'P2P Offline'}</Text>
                             </TouchableOpacity>
                         )}
+                        <TouchableOpacity 
+                            onPress={() => setShowReminderMenu(true)} 
+                            style={{ padding: 8 }}
+                        >
+                            <Ionicons name="timer-outline" size={24} color="#00e5ff" />
+                        </TouchableOpacity>
                         <TouchableOpacity onPress={initiateCall} style={{ padding: 8 }}>
                             <Ionicons name="call" size={24} color="#00e5ff" />
                         </TouchableOpacity>
@@ -138,6 +145,25 @@ export default function ChatScreen({ route, navigation }) {
             }
         });
     }, [navigation, friendName, friendId, friendProfilePicture, isOnline, isScanning, connectedPeer, colors, friends]);
+
+    const handleSetReminder = async (minutes) => {
+        setShowReminderMenu(false);
+        const lastMsgText = chatMessages.length > 0 ? chatMessages[chatMessages.length - 1].encryptedContent : "Reply to chat";
+        const notificationId = await scheduleMessageReminder(lastMsgText, friendName, minutes);
+        
+        if (notificationId) {
+            const targetTime = new Date(Date.now() + minutes * 60000);
+            addReminder({
+                id: Date.now().toString(),
+                friendId,
+                friendName,
+                targetTime: targetTime.toISOString(),
+                notificationId,
+                messagePreview: lastMsgText
+            });
+            Alert.alert("Reminder Set", `I'll remind you to reply to ${friendName} in ${minutes} minutes! ⏰`);
+        }
+    };
     
     // Cleanup recordings on unmount
     useEffect(() => {
@@ -672,6 +698,25 @@ export default function ChatScreen({ route, navigation }) {
                 )}
             </View>
             
+            {/* Reminder Menu Modal */}
+            {showReminderMenu && (
+                <View style={styles.modalOverlay}>
+                    <TouchableOpacity style={{ flex: 1 }} onPress={() => setShowReminderMenu(false)} />
+                    <View style={styles.reminderMenu}>
+                        <Text style={styles.menuTitle}>Remind me to reply in...</Text>
+                        {[5, 10, 15, 30, 60].map(mins => (
+                            <TouchableOpacity key={mins} style={styles.menuItem} onPress={() => handleSetReminder(mins)}>
+                                <Ionicons name="time-outline" size={20} color="#00e5ff" />
+                                <Text style={styles.menuItemText}>{mins < 60 ? `${mins} Minutes` : '1 Hour'}</Text>
+                            </TouchableOpacity>
+                        ))}
+                        <TouchableOpacity style={[styles.menuItem, { borderBottomWidth: 0, marginTop: 8 }]} onPress={() => setShowReminderMenu(false)}>
+                            <Text style={[styles.menuItemText, { color: '#FF3B30', textAlign: 'center', width: '100%', fontWeight: 'bold' }]}>Cancel</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            )}
+            
             <EmojiPicker
                 onEmojiSelected={handleEmojiSelected}
                 open={isEmojiPickerOpen}
@@ -921,6 +966,8 @@ const styles = StyleSheet.create({
     },
     durationText: {
         fontSize: 11,
+        color: '#8A8D9F',
+        marginLeft: 8,
     },
     recordingOverlay: {
         position: 'absolute',
@@ -970,5 +1017,37 @@ const styles = StyleSheet.create({
         fontSize: 11,
         color: '#8A8D9F',
         marginTop: 2,
+    },
+    modalOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        justifyContent: 'flex-end',
+        zIndex: 1000,
+    },
+    reminderMenu: {
+        backgroundColor: '#1A1B22',
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        padding: 24,
+        paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    },
+    menuTitle: {
+        color: '#FFF',
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginBottom: 20,
+        textAlign: 'center',
+    },
+    menuItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255,255,255,0.05)',
+    },
+    menuItemText: {
+        color: '#FFF',
+        fontSize: 16,
+        marginLeft: 16,
     }
 });

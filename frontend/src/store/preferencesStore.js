@@ -13,6 +13,7 @@ export const usePreferencesStore = create(
             showPreviews: true,
             notificationSounds: true,
             vibrationEnabled: true,
+            activeReminders: [], // [{ id, friendId, friendName, targetTime, notificationId }]
             
             toggleTheme: () => set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
             setTheme: (theme) => set({ theme }),
@@ -23,7 +24,9 @@ export const usePreferencesStore = create(
             setNotificationsEnabled: (enabled) => set({ notificationsEnabled: enabled }),
             setShowPreviews: (enabled) => set({ showPreviews: enabled }),
             setNotificationSounds: (enabled) => set({ notificationSounds: enabled }),
-            setVibrationEnabled: (enabled) => set({ vibrationEnabled: enabled })
+            setVibrationEnabled: (enabled) => set({ vibrationEnabled: enabled }),
+            addReminder: (reminder) => set((state) => ({ activeReminders: [...state.activeReminders, reminder] })),
+            removeReminder: (notificationId) => set((state) => ({ activeReminders: state.activeReminders.filter(r => r.notificationId !== notificationId) }))
         }),
         {
             name: 'chatwithme-preferences-storage', 
