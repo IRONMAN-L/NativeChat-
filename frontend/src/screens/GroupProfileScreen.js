@@ -144,7 +144,7 @@ export default function GroupProfileScreen({ route, navigation }) {
             icon: isMuted ? 'notifications-off' : 'notifications', 
             label: isMuted ? 'Unmute' : 'Mute', 
             onPress: handleToggleMute, 
-            color: isMuted ? '#ff4081' : '#8A8D9F' 
+            color: isMuted ? '#ff4081' : '#00e5ff' 
         },
         { icon: 'share-social', label: 'Share', onPress: handleShare, color: '#00e5ff' }
     ];

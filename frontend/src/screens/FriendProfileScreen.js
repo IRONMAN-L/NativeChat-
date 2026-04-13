@@ -13,7 +13,7 @@ export default function FriendProfileScreen({ route, navigation }) {
     const { friendId, friendName, friendProfilePicture, friendEmail, friendUsername } = route.params;
     const [activeTab, setActiveTab] = useState('Media');
     const [showMenu, setShowMenu] = useState(false);
-    const [toast, setToast] = useState({ visible: false, message: '' });
+    const [toast, setToast] = useState({ visible: false, message: '', icon: 'notifications' });
 
     const { messages, friends, muteUser, blockUser, clearChat } = useChatStore();
     const { user, token } = useAuthStore();
@@ -35,15 +35,23 @@ export default function FriendProfileScreen({ route, navigation }) {
         .reverse()
         .map(m => m.encryptedContent); // Holds actual image URL natively
 
-    const triggerToast = (msg) => {
-        setToast({ visible: true, message: msg });
-        setTimeout(() => setToast({ visible: false, message: '' }), 3000);
+    const triggerToast = (msg, icon = 'notifications') => {
+        setToast({ visible: true, message: msg, icon });
+        setTimeout(() => setToast({ visible: false, message: '', icon: 'notifications' }), 3000);
     };
 
     const handleMute = async () => {
         const result = await muteUser(token, friendId);
         if (result !== null) {
-            triggerToast(result ? "Notifications muted" : "Notifications unmuted");
+            triggerToast(result ? "Notifications muted" : "Notifications unmuted", result ? "notifications-off" : "notifications");
+        }
+    };
+
+    const handleToggleStar = async () => {
+        const { toggleStarFriend } = useChatStore.getState();
+        const result = await toggleStarFriend(token, friendId);
+        if (result !== null) {
+            triggerToast(result ? "Added to favorites" : "Removed from favorites", result ? "star" : "star-outline");
         }
     };
 
@@ -93,10 +101,23 @@ export default function FriendProfileScreen({ route, navigation }) {
         { 
             icon: isMuted ? 'notifications-off' : 'notifications', 
             label: isMuted ? 'Unmute' : 'Mute', 
-            onPress: handleMute 
+            onPress: handleMute,
+            color: isMuted ? '#ff4081' : '#00e5ff'
         },
-        { icon: 'call', label: 'Call', onPress: () => handleCall('audio') },
-        { icon: 'videocam', label: 'Video', onPress: () => handleCall('video') }
+        { 
+            icon: isStarred ? 'star' : 'star-outline', 
+            label: isStarred ? 'Favorited' : 'Favorite', 
+            onPress: handleToggleStar,
+            color: isStarred ? '#FFD700' : '#8A8D9F'
+        },
+        { icon: 'call', label: 'Call', onPress: () => handleCall('audio'), color: '#00e5ff' },
+    ];
+
+    const ACTIONS_ROW = [
+        { icon: 'videocam', label: 'Video', onPress: () => handleCall('video') },
+        { icon: 'qr-code', label: 'QR Code', onPress: () => alert('Coming soon') },
+        { icon: 'share-social', label: 'Share', onPress: () => alert('Coming soon') },
+        { icon: 'ellipsis-horizontal', label: 'More', onPress: handleShowMenu }
     ];
 
     return (
@@ -126,6 +147,16 @@ export default function FriendProfileScreen({ route, navigation }) {
                 {/* Primary Action Button Array */}
                 <View style={styles.actionsContainer}>
                     {ACTIONS.map((action, index) => (
+                        <TouchableOpacity key={index} style={[styles.actionCard, { backgroundColor: colors.surface }]} onPress={action.onPress}>
+                            <Ionicons name={action.icon} size={24} color={action.color || colors.text} style={{ marginBottom: 6 }} />
+                            <Text style={[styles.actionLabel, { color: colors.text }]}>{action.label}</Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+
+                {/* Secondary Action Row */}
+                <View style={[styles.actionsContainer, { marginTop: -12, marginBottom: 24 }]}>
+                    {ACTIONS_ROW.map((action, index) => (
                         <TouchableOpacity key={index} style={[styles.actionCard, { backgroundColor: colors.surface }]} onPress={action.onPress}>
                             <Ionicons name={action.icon} size={24} color={colors.text} style={{ marginBottom: 6 }} />
                             <Text style={[styles.actionLabel, { color: colors.text }]}>{action.label}</Text>
@@ -233,7 +264,7 @@ export default function FriendProfileScreen({ route, navigation }) {
             {toast.visible && (
                 <View style={[styles.toastContainer, { backgroundColor: colors.surface }]}>
                     <Ionicons 
-                        name={toast.message.includes('unmuted') ? "notifications" : "notifications-off"} 
+                        name={toast.icon} 
                         size={20} 
                         color="#00e5ff" 
                         style={{ marginRight: 10 }}
@@ -294,13 +325,12 @@ const styles = StyleSheet.create({
     actionCard: {
         backgroundColor: '#1A1B22',
         width: '23%',
-        height: 70,
+        height: 75,
         borderRadius: 16,
         justifyContent: 'center',
         alignItems: 'center',
     },
     actionLabel: {
-        color: '#FFF',
         fontSize: 12,
         fontWeight: '500',
     },
