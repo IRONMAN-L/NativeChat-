@@ -11,9 +11,16 @@ import LoginScreen from './src/screens/LoginScreen';
 import VerifyOTPScreen from './src/screens/VerifyOTPScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import FriendsScreen from './src/screens/FriendsScreen';
+import ChatScreen from './src/screens/ChatScreen';
 import CallScreen from './src/screens/CallScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
-import * as Notifications from 'expo-notifications';
+
+let Notifications = null;
+try {
+  Notifications = require('expo-notifications');
+} catch (e) {
+  console.log("Notifications not supported in this environment");
+}
 import ActivityScreen from './src/screens/ActivityScreen';
 import EditProfileScreen from './src/screens/EditProfileScreen';
 import FriendProfileScreen from './src/screens/FriendProfileScreen';
@@ -82,6 +89,8 @@ export default function App() {
 
   // Set up dynamic notification handler
   useEffect(() => {
+    if (!Notifications) return;
+
     Notifications.setNotificationHandler({
       handleNotification: async (notification) => {
         // If global notifications are off, do nothing

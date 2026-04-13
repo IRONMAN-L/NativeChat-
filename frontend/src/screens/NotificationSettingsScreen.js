@@ -2,7 +2,13 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Switch, ScrollView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { usePreferencesStore } from '../store/preferencesStore';
-import * as Notifications from 'expo-notifications';
+
+let Notifications = null;
+try {
+    Notifications = require('expo-notifications');
+} catch (e) {
+    console.log("Notifications not supported in this environment");
+}
 
 export default function NotificationSettingsScreen({ navigation }) {
     const {
