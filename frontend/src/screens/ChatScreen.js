@@ -145,7 +145,7 @@ export default function ChatScreen({ route, navigation }) {
                 );
             }
         });
-    }, [navigation, friendName, friendId, friendProfilePicture, isOnline, isScanning, connectedPeer, colors, friends]);
+    }, [navigation, friendName, friendId, friendProfilePicture, isOnline, isScanning, connectedPeer, colors, friends, handleToggleStar]);
 
     const triggerToast = (msg, icon = 'notifications', color = '#00e5ff') => {
         setToast({ visible: true, message: msg, icon, color });
@@ -757,7 +757,7 @@ export default function ChatScreen({ route, navigation }) {
             {toast.visible && (
                 <View style={[styles.toastContainer, { backgroundColor: colors.surface }]}>
                     <Ionicons 
-                        name={toast.icon} 
+                        name={toast.icon || "notifications"} 
                         size={20} 
                         color={toast.color || "#00e5ff"} 
                         style={{ marginRight: 10 }}

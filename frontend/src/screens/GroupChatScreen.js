@@ -115,7 +115,7 @@ export default function GroupChatScreen({ route, navigation }) {
                 )
             }
         });
-    }, [navigation, groupName, colors]);
+    }, [navigation, groupName, colors, activeGroup, user.id, handleToggleStar]);
 
     // Cleanup recordings on unmount
     useEffect(() => {
@@ -579,7 +579,7 @@ export default function GroupChatScreen({ route, navigation }) {
             {toast.visible && (
                 <View style={[styles.toastContainer, { backgroundColor: colors.surface }]}>
                     <Ionicons 
-                        name={toast.icon} 
+                        name={toast.icon || "notifications"} 
                         size={20} 
                         color={toast.color || "#00e5ff"} 
                         style={{ marginRight: 10 }}

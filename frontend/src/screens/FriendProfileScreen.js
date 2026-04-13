@@ -35,15 +35,19 @@ export default function FriendProfileScreen({ route, navigation }) {
         .reverse()
         .map(m => m.encryptedContent); // Holds actual image URL natively
 
-    const triggerToast = (msg, icon = 'notifications') => {
-        setToast({ visible: true, message: msg, icon });
-        setTimeout(() => setToast({ visible: false, message: '', icon: 'notifications' }), 3000);
+    const triggerToast = (msg, icon = 'notifications', color = '#00e5ff') => {
+        setToast({ visible: true, message: msg, icon, color });
+        setTimeout(() => setToast({ visible: false, message: '', icon: 'notifications', color: '#00e5ff' }), 3000);
     };
 
     const handleMute = async () => {
         const result = await muteUser(token, friendId);
         if (result !== null) {
-            triggerToast(result ? "Notifications muted" : "Notifications unmuted", result ? "notifications-off" : "notifications");
+            triggerToast(
+                result ? "Notifications muted" : "Notifications unmuted", 
+                result ? "notifications-off" : "notifications",
+                result ? "#ff4081" : "#00e5ff"
+            );
         }
     };
 
@@ -51,7 +55,11 @@ export default function FriendProfileScreen({ route, navigation }) {
         const { toggleStarFriend } = useChatStore.getState();
         const result = await toggleStarFriend(token, friendId);
         if (result !== null) {
-            triggerToast(result ? "Added to favorites" : "Removed from favorites", result ? "star" : "star-outline");
+            triggerToast(
+                result ? "Added to favorites" : "Removed from favorites", 
+                result ? "star" : "star-outline",
+                result ? "#FFD700" : "#8A8D9F"
+            );
         }
     };
 
@@ -264,9 +272,9 @@ export default function FriendProfileScreen({ route, navigation }) {
             {toast.visible && (
                 <View style={[styles.toastContainer, { backgroundColor: colors.surface }]}>
                     <Ionicons 
-                        name={toast.icon} 
+                        name={toast.icon || "notifications"} 
                         size={20} 
-                        color="#00e5ff" 
+                        color={toast.color || "#00e5ff"} 
                         style={{ marginRight: 10 }}
                     />
                     <Text style={[styles.toastText, { color: colors.text }]}>{toast.message}</Text>
