@@ -64,7 +64,7 @@ function MainTabs() {
           let iconName;
           if (route.name === 'Chats') iconName = focused ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline';
           else if (route.name === 'Contacts') iconName = focused ? 'people' : 'people-outline';
-          else if (route.name === 'Activity') iconName = focused ? 'time' : 'time-outline';
+          else if (route.name === 'Calls') iconName = focused ? 'call' : 'call-outline';
           else if (route.name === 'Settings') iconName = focused ? 'settings' : 'settings-outline';
           return <Ionicons name={iconName} size={size} color={color} />;
         },
@@ -72,7 +72,7 @@ function MainTabs() {
     >
       <Tab.Screen name="Chats" component={HomeScreen} />
       <Tab.Screen name="Contacts" component={FriendsScreen} />
-      <Tab.Screen name="Activity" component={ActivityScreen} />
+      <Tab.Screen name="Calls" component={ActivityScreen} />
       <Tab.Screen name="Settings" component={SettingsScreen} />
     </Tab.Navigator>
   );

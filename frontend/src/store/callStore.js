@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useChatStore } from './chatStore';
 import { useAuthStore } from './authStore';
 
@@ -37,12 +39,26 @@ const pc_config = {
     ]
 };
 
-export const useCallStore = create((set, get) => ({
-    localStream: null,
-    remoteStream: null,
-    callStatus: 'IDLE', // IDLE, CALLING, RECEIVING, CONNECTED
-    incomingCallData: null,
-    peerConnection: null,
+export const useCallStore = create(
+    persist(
+        (set, get) => ({
+            localStream: null,
+            remoteStream: null,
+            callStatus: 'IDLE', // IDLE, CALLING, RECEIVING, CONNECTED
+            incomingCallData: null,
+            peerConnection: null,
+            callHistory: [], // [{ id, name, friendId, type, direction, status, timestamp }]
+
+            addCallHistoryRecord: (record) => {
+                const newRecord = {
+                    id: Date.now().toString(),
+                    timestamp: new Date().toISOString(),
+                    ...record
+                };
+                set((state) => ({
+                    callHistory: [newRecord, ...state.callHistory].slice(0, 50) // Keep last 50 calls
+                }));
+            },
 
     setupWebrtcListeners: () => {
         const socket = useChatStore.getState().socket;
@@ -51,6 +67,14 @@ export const useCallStore = create((set, get) => ({
         socket.off('callIncoming');
         socket.on('callIncoming', async (data) => {
             set({ callStatus: 'RECEIVING', incomingCallData: data });
+            // Log as incoming immediately, will update status later if missed
+            get().addCallHistoryRecord({
+                name: data.name,
+                friendId: data.from,
+                type: data.type || 'Video',
+                direction: 'Incoming',
+                status: 'Missed' // Default to missed until answered
+            });
         });
 
         socket.off('callAccepted');
@@ -133,11 +157,20 @@ export const useCallStore = create((set, get) => ({
         return pc;
     },
 
-    callUser: async (friendId, friendName) => {
+    callUser: async (friendId, friendName, type = 'Video') => {
         const user = useAuthStore.getState().user;
         const socket = useChatStore.getState().socket;
         
         set({ callStatus: 'CALLING' });
+        
+        get().addCallHistoryRecord({
+            name: friendName,
+            friendId,
+            type,
+            direction: 'Outgoing',
+            status: 'Connected'
+        });
+
         await get().getMediaStream();
         
         const pc = get().createPeerConnection(friendId);
@@ -158,6 +191,14 @@ export const useCallStore = create((set, get) => ({
         const socket = useChatStore.getState().socket;
         
         set({ callStatus: 'CONNECTED' });
+
+        // Update last record in history to 'Connected' instead of 'Missed'
+        set((state) => ({
+            callHistory: state.callHistory.map((call, idx) => 
+                (idx === 0 && call.friendId === data.from) ? { ...call, status: 'Connected' } : call
+            )
+        }));
+
         await get().getMediaStream();
         
         const pc = get().createPeerConnection(data.from);
@@ -202,4 +243,11 @@ export const useCallStore = create((set, get) => ({
             peerConnection: null
         });
     }
-}));
+}),
+{
+    name: 'chatwithme-call-storage',
+    storage: createJSONStorage(() => AsyncStorage),
+    partialize: (state) => ({ callHistory: state.callHistory }), // Only persist history
+}
+)
+);
