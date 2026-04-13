@@ -13,6 +13,7 @@ export default function FriendProfileScreen({ route, navigation }) {
     const { friendId, friendName, friendProfilePicture, friendEmail, friendUsername } = route.params;
     const [activeTab, setActiveTab] = useState('Media');
     const [showMenu, setShowMenu] = useState(false);
+    const [toast, setToast] = useState({ visible: false, message: '' });
 
     const { messages, friends, muteUser, blockUser, clearChat } = useChatStore();
     const { user, token } = useAuthStore();
@@ -34,10 +35,15 @@ export default function FriendProfileScreen({ route, navigation }) {
         .reverse()
         .map(m => m.encryptedContent); // Holds actual image URL natively
 
+    const triggerToast = (msg) => {
+        setToast({ visible: true, message: msg });
+        setTimeout(() => setToast({ visible: false, message: '' }), 3000);
+    };
+
     const handleMute = async () => {
         const result = await muteUser(token, friendId);
         if (result !== null) {
-            Alert.alert(result ? "Muted" : "Unmuted", `Notifications from ${friendName} have been ${result ? 'muted' : 'unmuted'}.`);
+            triggerToast(result ? "Notifications muted" : "Notifications unmuted");
         }
     };
 
@@ -221,6 +227,18 @@ export default function FriendProfileScreen({ route, navigation }) {
                             <Text style={[styles.cancelButtonText, { color: colors.text }]}>Cancel</Text>
                         </TouchableOpacity>
                     </View>
+                </View>
+            )}
+            {/* Custom Toast Message */}
+            {toast.visible && (
+                <View style={[styles.toastContainer, { backgroundColor: colors.surface }]}>
+                    <Ionicons 
+                        name={toast.message.includes('unmuted') ? "notifications" : "notifications-off"} 
+                        size={20} 
+                        color="#00e5ff" 
+                        style={{ marginRight: 10 }}
+                    />
+                    <Text style={[styles.toastText, { color: colors.text }]}>{toast.message}</Text>
                 </View>
             )}
         </SafeAreaView>
@@ -409,5 +427,26 @@ const styles = StyleSheet.create({
     cancelButtonText: {
         fontSize: 16,
         fontWeight: 'bold',
+    },
+    toastContainer: {
+        position: 'absolute',
+        bottom: Platform.OS === 'ios' ? 100 : 40,
+        left: 20,
+        right: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderRadius: 12,
+        elevation: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 5,
+        zIndex: 2000,
+    },
+    toastText: {
+        fontSize: 14,
+        fontWeight: '500',
     }
 });
