@@ -133,15 +133,19 @@ export default function GroupChatScreen({ route, navigation }) {
     const chatMessages = messages.filter((m) => m.groupId === groupId);
     const reversedMessages = [...chatMessages].reverse();
 
-    const triggerToast = (msg, icon = 'notifications') => {
-        setToast({ visible: true, message: msg, icon });
-        setTimeout(() => setToast({ visible: false, message: '', icon: 'notifications' }), 3000);
+    const triggerToast = (msg, icon = 'notifications', color = '#00e5ff') => {
+        setToast({ visible: true, message: msg, icon, color });
+        setTimeout(() => setToast({ visible: false, message: '', icon: 'notifications', color: '#00e5ff' }), 3000);
     };
 
     const handleToggleStar = async () => {
         const result = await toggleStarGroup(token, groupId, user.id);
         if (result !== null) {
-            triggerToast(result ? "Group added to favorites" : "Removed from favorites", result ? "star" : "star-outline");
+            triggerToast(
+                result ? "Group added to favorites" : "Removed from favorites", 
+                result ? "star" : "star-outline",
+                result ? "#FFD700" : "#8A8D9F"
+            );
         }
     };
 
@@ -164,7 +168,7 @@ export default function GroupChatScreen({ route, navigation }) {
                 notificationId,
                 messagePreview: lastMsgText
             });
-            triggerToast(`Group reminder set for ${minutes} minutes!`, "timer");
+            triggerToast(`Group reminder set for ${minutes} minutes!`, "timer", "#00e5ff");
         }
     };
 
@@ -577,7 +581,7 @@ export default function GroupChatScreen({ route, navigation }) {
                     <Ionicons 
                         name={toast.icon} 
                         size={20} 
-                        color="#00e5ff" 
+                        color={toast.color || "#00e5ff"} 
                         style={{ marginRight: 10 }}
                     />
                     <Text style={[styles.toastText, { color: colors.text }]}>{toast.message}</Text>

@@ -147,15 +147,19 @@ export default function ChatScreen({ route, navigation }) {
         });
     }, [navigation, friendName, friendId, friendProfilePicture, isOnline, isScanning, connectedPeer, colors, friends]);
 
-    const triggerToast = (msg, icon = 'notifications') => {
-        setToast({ visible: true, message: msg, icon });
-        setTimeout(() => setToast({ visible: false, message: '', icon: 'notifications' }), 3000);
+    const triggerToast = (msg, icon = 'notifications', color = '#00e5ff') => {
+        setToast({ visible: true, message: msg, icon, color });
+        setTimeout(() => setToast({ visible: false, message: '', icon: 'notifications', color: '#00e5ff' }), 3000);
     };
 
     const handleToggleStar = async () => {
         const result = await toggleStarFriend(token, friendId);
         if (result !== null) {
-            triggerToast(result ? "Added to favorites" : "Removed from favorites", result ? "star" : "star-outline");
+            triggerToast(
+                result ? "Added to favorites" : "Removed from favorites", 
+                result ? "star" : "star-outline",
+                result ? "#FFD700" : "#8A8D9F"
+            );
         }
     };
 
@@ -174,7 +178,7 @@ export default function ChatScreen({ route, navigation }) {
                 notificationId,
                 messagePreview: lastMsgText
             });
-            triggerToast(`Reminder set for ${minutes} minutes!`, "timer");
+            triggerToast(`Reminder set for ${minutes} minutes!`, "timer", "#00e5ff");
         }
     };
     
@@ -755,7 +759,7 @@ export default function ChatScreen({ route, navigation }) {
                     <Ionicons 
                         name={toast.icon} 
                         size={20} 
-                        color="#00e5ff" 
+                        color={toast.color || "#00e5ff"} 
                         style={{ marginRight: 10 }}
                     />
                     <Text style={[styles.toastText, { color: colors.text }]}>{toast.message}</Text>
