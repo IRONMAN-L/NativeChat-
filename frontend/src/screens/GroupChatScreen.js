@@ -57,6 +57,8 @@ export default function GroupChatScreen({ route, navigation }) {
     const soundRef = useRef(null);
     const recordingInterval = useRef(null);
     const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
+    const [toast, setToast] = useState({ visible: false, message: '', icon: 'notifications' });
+    const [showReminderMenu, setShowReminderMenu] = useState(false);
 
     useEffect(() => {
         if (token && groupId) {
@@ -69,12 +71,49 @@ export default function GroupChatScreen({ route, navigation }) {
             headerStyle: { backgroundColor: colors.background },
             headerShadowVisible: false,
             headerTintColor: colors.text,
-            headerTitle: groupName,
-            headerRight: () => (
-                <TouchableOpacity style={{ padding: 8 }}>
-                    <Ionicons name="information-circle-outline" size={24} color="#00e5ff" />
+            headerTitle: () => (
+                <TouchableOpacity 
+                    style={{ flexDirection: 'row', alignItems: 'center' }}
+                    onPress={() => {
+                        navigation.navigate('GroupProfile', {
+                            groupId,
+                            groupName
+                        });
+                    }}
+                >
+                    <Image 
+                        source={{ uri: activeGroup?.iconUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(groupName)}&background=00e5ff&color=fff` }} 
+                        style={{ width: 36, height: 36, borderRadius: 18, marginRight: 12, backgroundColor: colors.surface }} 
+                    />
+                    <Text style={{ color: colors.text, fontSize: 18, fontWeight: 'bold' }}>{groupName}</Text>
                 </TouchableOpacity>
-            )
+            ),
+            headerRight: () => {
+                const isStarred = activeGroup?.starredBy?.includes(user.id) || false;
+                return (
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                         <TouchableOpacity 
+                            onPress={handleToggleStar} 
+                            style={{ padding: 8 }}
+                        >
+                            <Ionicons 
+                                name={isStarred ? "star" : "star-outline"} 
+                                size={24} 
+                                color={isStarred ? "#FFD700" : "#8A8D9F"} 
+                            />
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                            onPress={() => setShowReminderMenu(true)} 
+                            style={{ padding: 8 }}
+                        >
+                            <Ionicons name="timer-outline" size={24} color="#00e5ff" />
+                        </TouchableOpacity>
+                        <TouchableOpacity style={{ padding: 8 }}>
+                            <Ionicons name="information-circle-outline" size={24} color="#00e5ff" />
+                        </TouchableOpacity>
+                    </View>
+                )
+            }
         });
     }, [navigation, groupName, colors]);
 
@@ -93,6 +132,41 @@ export default function GroupChatScreen({ route, navigation }) {
     // Filter messages for this specific group
     const chatMessages = messages.filter((m) => m.groupId === groupId);
     const reversedMessages = [...chatMessages].reverse();
+
+    const triggerToast = (msg, icon = 'notifications') => {
+        setToast({ visible: true, message: msg, icon });
+        setTimeout(() => setToast({ visible: false, message: '', icon: 'notifications' }), 3000);
+    };
+
+    const handleToggleStar = async () => {
+        const result = await toggleStarGroup(token, groupId, user.id);
+        if (result !== null) {
+            triggerToast(result ? "Group added to favorites" : "Removed from favorites", result ? "star" : "star-outline");
+        }
+    };
+
+    const handleSetReminder = async (minutes) => {
+        setShowReminderMenu(false);
+        const lastMsgText = chatMessages.length > 0 ? chatMessages[chatMessages.length - 1].encryptedContent : "Reply to group chat";
+        const { scheduleMessageReminder } = require('../utils/reminderUtils');
+        const { usePreferencesStore } = require('../store/preferencesStore');
+        const { addReminder } = usePreferencesStore.getState();
+        
+        const notificationId = await scheduleMessageReminder(lastMsgText, `${groupName} (Group)`, minutes);
+        
+        if (notificationId) {
+            const targetTime = new Date(Date.now() + minutes * 60000);
+            addReminder({
+                id: Date.now().toString(),
+                groupId,
+                groupName,
+                targetTime: targetTime.toISOString(),
+                notificationId,
+                messagePreview: lastMsgText
+            });
+            triggerToast(`Group reminder set for ${minutes} minutes!`, "timer");
+        }
+    };
 
     const handleSend = () => {
         if (!messageText.trim()) return;
@@ -477,6 +551,38 @@ export default function GroupChatScreen({ route, navigation }) {
                     },
                 }}
             />
+
+            {/* Reminder Menu Modal */}
+            {showReminderMenu && (
+                <View style={styles.modalOverlay}>
+                    <TouchableOpacity style={{ flex: 1 }} onPress={() => setShowReminderMenu(false)} />
+                    <View style={styles.reminderMenu}>
+                        <Text style={styles.menuTitle}>Remind me to reply in...</Text>
+                        {[5, 10, 15, 30, 60].map(mins => (
+                            <TouchableOpacity key={mins} style={styles.menuItem} onPress={() => handleSetReminder(mins)}>
+                                <Ionicons name="time-outline" size={20} color="#00e5ff" />
+                                <Text style={styles.menuItemText}>{mins < 60 ? `${mins} Minutes` : '1 Hour'}</Text>
+                            </TouchableOpacity>
+                        ))}
+                        <TouchableOpacity style={[styles.menuItem, { borderBottomWidth: 0, marginTop: 8 }]} onPress={() => setShowReminderMenu(false)}>
+                            <Text style={[styles.menuItemText, { color: '#FF3B30', textAlign: 'center', width: '100%', fontWeight: 'bold' }]}>Cancel</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            )}
+
+            {/* Custom Toast Message */}
+            {toast.visible && (
+                <View style={[styles.toastContainer, { backgroundColor: colors.surface }]}>
+                    <Ionicons 
+                        name={toast.icon} 
+                        size={20} 
+                        color="#00e5ff" 
+                        style={{ marginRight: 10 }}
+                    />
+                    <Text style={[styles.toastText, { color: colors.text }]}>{toast.message}</Text>
+                </View>
+            )}
         </KeyboardAvoidingView>
     );
 }
@@ -589,5 +695,62 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         height: 40,
+    },
+    modalOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end',
+        zIndex: 1000,
+    },
+    reminderMenu: {
+        backgroundColor: '#1A1B22',
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        padding: 20,
+        paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+    },
+    menuTitle: {
+        color: '#FFF',
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginBottom: 20,
+        textAlign: 'center',
+    },
+    menuItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 15,
+        borderBottomWidth: 0.5,
+        borderBottomColor: '#333',
+    },
+    menuItemText: {
+        color: '#FFF',
+        fontSize: 16,
+        marginLeft: 15,
+    },
+    toastContainer: {
+        position: 'absolute',
+        bottom: Platform.OS === 'ios' ? 100 : 80,
+        left: 20,
+        right: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderRadius: 12,
+        elevation: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 5,
+        zIndex: 2000,
+    },
+    toastText: {
+        fontSize: 14,
+        fontWeight: '500',
     }
 });

@@ -373,5 +373,87 @@ export const useChatStore = create((set, get) => ({
       console.warn('Clear Chat Error:', error);
       return false;
     }
+  },
+
+  updateGroupInfo: async (token, groupId, data) => {
+    try {
+      const response = await axios.put(`${API_URL}/groups/update`, { groupId, ...data }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      set((state) => ({
+        groups: state.groups.map(g => (g.id || g._id) === groupId ? { ...g, ...response.data } : g)
+      }));
+      return response.data;
+    } catch (error) {
+      console.warn('Update Group Error:', error);
+      return null;
+    }
+  },
+
+  addMembersToGroup: async (token, groupId, memberIds) => {
+    try {
+      const response = await axios.put(`${API_URL}/groups/add-members`, { groupId, memberIds }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      set((state) => ({
+        groups: state.groups.map(g => (g.id || g._id) === groupId ? response.data : g)
+      }));
+      return response.data;
+    } catch (error) {
+      console.warn('Add Members Error:', error);
+      return null;
+    }
+  },
+
+  leaveGroup: async (token, groupId) => {
+    try {
+      await axios.post(`${API_URL}/groups/leave`, { groupId }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      set((state) => ({
+        groups: state.groups.filter(g => (g.id || g._id) !== groupId)
+      }));
+      return true;
+    } catch (error) {
+      console.warn('Leave Group Error:', error);
+      return false;
+    }
+  },
+
+  clearGroupMessages: async (token, groupId) => {
+    try {
+      await axios.delete(`${API_URL}/groups/clear-history/${groupId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      set({ messages: [] });
+      return true;
+    } catch (error) {
+      console.warn('Clear Group Messages Error:', error);
+      return false;
+    }
+  },
+
+  toggleStarGroup: async (token, groupId, userId) => {
+    try {
+      const response = await axios.post(`${API_URL}/groups/toggle-star`, { groupId }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const { isStarred } = response.data;
+      set((state) => ({
+        groups: state.groups.map(g => {
+            if ((g.id || g._id) === groupId) {
+                const starredBy = isStarred 
+                    ? [...(g.starredBy || []), userId]
+                    : (g.starredBy || []).filter(id => id.toString() !== userId.toString());
+                return { ...g, starredBy };
+            }
+            return g;
+        })
+      }));
+      return isStarred;
+    } catch (error) {
+      console.warn('Toggle Star Group Error:', error);
+      return null;
+    }
   }
 }));

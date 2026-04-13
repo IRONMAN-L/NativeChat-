@@ -30,6 +30,7 @@ import LanguageSettingsScreen from './src/screens/LanguageSettingsScreen';
 import VerifyPINScreen from './src/screens/VerifyPINScreen';
 import CreateGroupScreen from './src/screens/CreateGroupScreen';
 import GroupChatScreen from './src/screens/GroupChatScreen';
+import GroupProfileScreen from './src/screens/GroupProfileScreen';
 import NotificationSettingsScreen from './src/screens/NotificationSettingsScreen';
 import { useCallStore } from './src/store/callStore';
 import { useOfflineP2pStore } from './src/store/offlineP2pStore';
@@ -233,6 +234,11 @@ export default function App() {
             <Stack.Screen 
               name="GroupChat" 
               component={GroupChatScreen} 
+            />
+            <Stack.Screen 
+              name="GroupProfile" 
+              component={GroupProfileScreen} 
+              options={{ headerShown: false }} 
             />
             <Stack.Screen 
               name="Call" 

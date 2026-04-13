@@ -10,23 +10,32 @@ import { getTranslation } from '../utils/languages';
 
 export default function HomeScreen({ navigation }) {
     const { user, token } = useAuthStore();
-    const { connectSocket, disconnectSocket, friends, fetchFriends } = useChatStore();
+    const { connectSocket, disconnectSocket, friends, fetchFriends, groups, fetchGroups } = useChatStore();
     const { theme, language } = usePreferencesStore();
     const colors = getThemeColors(theme);
     const t = (key) => getTranslation(language, key);
     const [searchQuery, setSearchQuery] = useState('');
 
-    const filteredFriends = friends.filter(f => {
+    const combinedList = [
+        ...friends.map(f => ({ ...f, type: 'friend' })),
+        ...groups.map(g => ({ ...g, type: 'group' }))
+    ];
+
+    const filteredChats = combinedList.filter(item => {
         if (!searchQuery) return true;
         const q = searchQuery.toLowerCase();
-        return f.username?.toLowerCase().includes(q) || 
-               f.displayName?.toLowerCase().includes(q) || 
-               f.email?.toLowerCase().includes(q);
+        const searchAgainst = item.type === 'group' 
+            ? item.name 
+            : (item.displayName || item.username || item.email);
+        return searchAgainst?.toLowerCase().includes(q);
     });
 
     useEffect(() => {
         if (user && user.id) connectSocket(user.id);
-        if (token && friends.length === 0) fetchFriends(token);
+        if (token) {
+            if (friends.length === 0) fetchFriends(token);
+            if (groups.length === 0) fetchGroups(token);
+        }
     }, [user, token]);
 
     const renderActiveUser = ({ item, index }) => {
@@ -64,31 +73,52 @@ export default function HomeScreen({ navigation }) {
     };
 
     const renderRecentMessage = ({ item }) => {
-        const name = item.displayName || item.username || item.email || 'User';
-        const isOnline = item.status === 'online';
+        const isGroup = item.type === 'group';
+        const name = isGroup ? item.name : (item.displayName || item.username || item.email || 'User');
+        const isOnline = !isGroup && item.status === 'online';
+        
+        const avatarUri = isGroup 
+            ? (item.iconUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=00e5ff&color=fff`)
+            : (item.profilePicture || `https://i.pravatar.cc/150?u=${item.id || item._id}`);
+
         return (
             <TouchableOpacity 
                 style={styles.recentMessageContainer} 
-                onPress={() => navigation.navigate('Chat', { 
-                    friendId: item.id || item._id, 
-                    friendName: name, 
-                    friendProfilePicture: item.profilePicture 
-                })}
+                onPress={() => {
+                    if (isGroup) {
+                        navigation.navigate('GroupChat', { 
+                            groupId: item.id || item._id, 
+                            groupName: name 
+                        });
+                    } else {
+                        navigation.navigate('Chat', { 
+                            friendId: item.id || item._id, 
+                            friendName: name, 
+                            friendProfilePicture: item.profilePicture 
+                        });
+                    }
+                }}
             >
                 <View style={styles.recentAvatarWrapper}>
                     <LinearGradient
-                        colors={['#00e5ff', '#b388ff']}
-                        style={styles.avatarGradient}
+                        colors={isGroup ? ['#00e5ff', '#00e5ff'] : ['#00e5ff', '#b388ff']}
+                        style={[styles.avatarGradient, isGroup && { borderRadius: 15 }]}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
                     >
-                        <Image source={{ uri: item.profilePicture || `https://i.pravatar.cc/150?u=${item.id || item._id}` }} style={styles.avatarImage} />
+                        <Image source={{ uri: avatarUri }} style={[styles.avatarImage, isGroup && { borderRadius: 13 }]} />
                     </LinearGradient>
                     {isOnline && <View style={styles.onlineDot} />}
+                    {isGroup && (
+                        <View style={[styles.groupBadge, { backgroundColor: colors.primary }]}>
+                            <Ionicons name="people" size={10} color="#FFF" />
+                        </View>
+                    )}
                 </View>
                 <View style={styles.recentMessageContent}>
                     <View style={styles.recentMessageHeader}>
                         <Text style={[styles.recentMessageName, { color: colors.text }]}>{name}</Text>
+                        {isGroup && <Text style={[styles.groupTag, { color: colors.textMuted }]}>Group</Text>}
                     </View>
                     <View style={styles.recentMessageFooter}>
                         <Text style={styles.recentMessageText} numberOfLines={1}>Tap to view messages...</Text>
@@ -161,7 +191,7 @@ export default function HomeScreen({ navigation }) {
                 </View>
                 
                 <FlatList
-                    data={filteredFriends}
+                    data={filteredChats}
                     keyExtractor={(item) => item.id || item._id}
                     renderItem={renderRecentMessage}
                     contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
@@ -393,5 +423,26 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    groupBadge: {
+        position: 'absolute',
+        top: -4,
+        right: -4,
+        width: 18,
+        height: 18,
+        borderRadius: 9,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: '#0F1014',
+    },
+    groupTag: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        paddingHorizontal: 4,
+        paddingVertical: 2,
+        borderRadius: 4,
     }
 });
