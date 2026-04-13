@@ -10,7 +10,7 @@ import { getTranslation } from '../utils/languages';
 
 export default function HomeScreen({ navigation }) {
     const { user, token } = useAuthStore();
-    const { connectSocket, disconnectSocket, friends, fetchFriends, groups, fetchGroups } = useChatStore();
+    const { connectSocket, disconnectSocket, friends, fetchFriends, groups, fetchGroups, messages } = useChatStore();
     const { theme, language } = usePreferencesStore();
     const colors = getThemeColors(theme);
     const t = (key) => getTranslation(language, key);
@@ -38,19 +38,7 @@ export default function HomeScreen({ navigation }) {
         }
     }, [user, token]);
 
-    const renderActiveUser = ({ item, index }) => {
-        if (index === 0) {
-            // "New Chat" button
-            return (
-                <View style={styles.activeUserContainer}>
-                    <TouchableOpacity style={styles.newChatButton}>
-                        <Ionicons name="add" size={24} color="#666" />
-                    </TouchableOpacity>
-                    <Text style={[styles.activeUserName, { color: colors.text }]}>New Chat</Text>
-                </View>
-            );
-        }
-
+    const renderActiveUser = ({ item }) => {
         const data = item;
         const name = data.displayName || data.username || data.email || 'User';
         const isOnline = data.status === 'online';
@@ -80,6 +68,14 @@ export default function HomeScreen({ navigation }) {
         const avatarUri = isGroup 
             ? (item.iconUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=00e5ff&color=fff`)
             : (item.profilePicture || `https://i.pravatar.cc/150?u=${item.id || item._id}`);
+            
+        const unreadMessages = messages.filter(m => {
+            const isFromCurrent = isGroup 
+                ? (m.groupId === (item.id || item._id)) 
+                : (m.senderId === (item.id || item._id) && m.receiverId === user.id);
+            return isFromCurrent && m.status !== 'seen';
+        });
+        const unreadCount = unreadMessages.length;
 
         return (
             <TouchableOpacity 
@@ -121,8 +117,16 @@ export default function HomeScreen({ navigation }) {
                         {isGroup && <Text style={[styles.groupTag, { color: colors.textMuted }]}>Group</Text>}
                     </View>
                     <View style={styles.recentMessageFooter}>
-                        <Text style={styles.recentMessageText} numberOfLines={1}>Tap to view messages...</Text>
-                        <Ionicons name="chevron-forward" size={16} color="#666" style={{ marginTop: 2 }} />
+                        <Text style={[styles.recentMessageText, unreadCount > 0 && { color: '#00e5ff', fontWeight: 'bold' }]} numberOfLines={1}>
+                            {unreadCount > 0 ? 'New Message' : 'Tap to view messages...'}
+                        </Text>
+                        {unreadCount > 0 ? (
+                            <View style={[styles.unreadBadge, { backgroundColor: '#ff4081' }]}>
+                                <Text style={styles.unreadText}>{unreadCount}</Text>
+                            </View>
+                        ) : (
+                            <Ionicons name="chevron-forward" size={16} color="#666" style={{ marginTop: 2 }} />
+                        )}
                     </View>
                 </View>
             </TouchableOpacity>
@@ -138,13 +142,9 @@ export default function HomeScreen({ navigation }) {
                         <LinearGradient colors={['#00e5ff', '#b388ff']} style={styles.logoGradient}>
                             <Ionicons name="chatbubble" size={18} color="#FFF" />
                         </LinearGradient>
-                        <Text style={[styles.headerTitle, { color: colors.text }]}>ChatWithMe</Text>
+                        <Text style={[styles.headerTitle, { color: colors.text }]}>NativeChat</Text>
                     </View>
                     <View style={styles.headerRight}>
-                        <TouchableOpacity style={styles.iconButton}>
-                            <Ionicons name="notifications-outline" size={24} color="#A0A0A0" />
-                            <View style={styles.notificationDot} />
-                        </TouchableOpacity>
                         <TouchableOpacity onPress={() => navigation.navigate('EditProfile')}>
                             <Image 
                                 source={{ uri: user?.profilePicture || `https://i.pravatar.cc/150?u=${user?.id || 'me'}` }} 
@@ -168,26 +168,33 @@ export default function HomeScreen({ navigation }) {
 
                 {/* Active Now Section */}
                 <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>{t('recent').toUpperCase()}</Text>
-                    <Ionicons name="chevron-forward" size={16} color="#666" />
+                    <Text style={styles.sectionTitle}>FAVOURITE</Text>
+                    <Ionicons name="star" size={16} color="#FFD700" />
                 </View>
                 <View style={styles.activeNowContainer}>
                     <FlatList
                         horizontal
                         showsHorizontalScrollIndicator={false}
-                        data={[{ id: 'new' }, ...friends]}
-                        keyExtractor={(item) => item.id || item._id || 'new'}
+                        data={combinedList.filter(item => {
+                            if (item.type === 'group') {
+                                return item.starredBy?.includes(user.id);
+                            }
+                            return item.isStarred;
+                        })}
+                        keyExtractor={(item) => item.id || item._id}
                         renderItem={renderActiveUser}
                         contentContainerStyle={{ paddingHorizontal: 16 }}
+                        ListEmptyComponent={
+                            <View style={{ justifyContent: 'center', height: '100%', paddingLeft: 10 }}>
+                                <Text style={{ color: colors.textMuted, fontSize: 13 }}>No favourites yet</Text>
+                            </View>
+                        }
                     />
                 </View>
 
                 {/* Recent Messages Section */}
                 <View style={[styles.sectionHeader, { marginTop: 10 }]}>
                     <Text style={styles.sectionTitle}>{t('chats').toUpperCase()}</Text>
-                    <TouchableOpacity>
-                        <Text style={styles.markReadText}>MARK READ</Text>
-                    </TouchableOpacity>
                 </View>
                 
                 <FlatList
