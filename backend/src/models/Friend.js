@@ -19,6 +19,10 @@ const FriendSchema = new mongoose.Schema({
     isStarred: {
         type: Boolean,
         default: false
+    },
+    isMuted: {
+        type: Boolean,
+        default: false
     }
 }, { timestamps: true });
 

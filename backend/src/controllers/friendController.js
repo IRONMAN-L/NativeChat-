@@ -102,7 +102,9 @@ exports.getFriends = async (req, res) => {
             const friendObj = f.requesterId._id.toString() === userId ? f.recipientId.toObject() : f.requesterId.toObject();
             return {
                 ...friendObj,
-                isStarred: f.isStarred
+                isStarred: f.isStarred,
+                isMuted: f.isMuted,
+                status: f.status
             };
         });
 
@@ -152,6 +154,78 @@ exports.toggleStar = async (req, res) => {
         res.status(200).json({ isStarred: friendship.isStarred, message: 'Status updated' });
     } catch (error) {
         console.error('Toggle Star Error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+// Toggle a friend's muted status
+exports.toggleMute = async (req, res) => {
+    const { friendId } = req.body;
+    const userId = req.user.id;
+
+    try {
+        const friendship = await Friend.findOne({
+            $or: [
+                { requesterId: userId, recipientId: friendId },
+                { requesterId: friendId, recipientId: userId }
+            ],
+            status: 'accepted'
+        });
+
+        if (!friendship) return res.status(404).json({ error: 'Friendship not found' });
+
+        friendship.isMuted = !friendship.isMuted;
+        await friendship.save();
+
+        res.status(200).json({ isMuted: friendship.isMuted, message: friendship.isMuted ? 'Notifications muted' : 'Notifications unmuted' });
+    } catch (error) {
+        console.error('Toggle Mute Error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+// Block a user
+exports.toggleBlock = async (req, res) => {
+    const { friendId } = req.body;
+    const userId = req.user.id;
+
+    try {
+        const friendship = await Friend.findOne({
+            $or: [
+                { requesterId: userId, recipientId: friendId },
+                { requesterId: friendId, recipientId: userId }
+            ]
+        });
+
+        if (!friendship) return res.status(404).json({ error: 'Relationship not found' });
+
+        const newStatus = friendship.status === 'blocked' ? 'accepted' : 'blocked';
+        friendship.status = newStatus;
+        await friendship.save();
+
+        res.status(200).json({ status: newStatus, message: newStatus === 'blocked' ? 'User blocked' : 'User unblocked' });
+    } catch (error) {
+        console.error('Toggle Block Error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+// Clear chat history
+const Message = require('../models/Message');
+exports.clearChatHistory = async (req, res) => {
+    const { friendId } = req.params;
+    const userId = req.user.id;
+
+    try {
+        await Message.deleteMany({
+            $or: [
+                { senderId: userId, receiverId: friendId },
+                { senderId: friendId, receiverId: userId }
+            ]
+        });
+
+        res.status(200).json({ message: 'Chat history cleared' });
+    } catch (error) {
+        console.error('Clear Chat Error:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 };

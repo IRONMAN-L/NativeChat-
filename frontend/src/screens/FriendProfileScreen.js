@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, SafeAreaView, Dimensions, Platform } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, SafeAreaView, Dimensions, Platform, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useChatStore } from '../store/chatStore';
 import { useAuthStore } from '../store/authStore';
+import { useCallStore } from '../store/callStore';
 import { usePreferencesStore } from '../store/preferencesStore';
 import { getThemeColors } from '../theme/colors';
 
@@ -12,10 +13,15 @@ export default function FriendProfileScreen({ route, navigation }) {
     const { friendId, friendName, friendProfilePicture, friendEmail, friendUsername } = route.params;
     const [activeTab, setActiveTab] = useState('Media');
 
-    const { messages } = useChatStore();
-    const { user } = useAuthStore();
+    const { messages, friends, muteUser, blockUser, clearChat } = useChatStore();
+    const { user, token } = useAuthStore();
+    const { initiateCall } = useCallStore();
     const { theme } = usePreferencesStore();
     const colors = getThemeColors(theme);
+
+    const activeFriend = friends.find(f => (f.id || f._id) === friendId);
+    const isMuted = activeFriend?.isMuted || false;
+    const isStarred = activeFriend?.isStarred || false;
 
     // Extract actual images shared between user and friend
     const sharedMedia = messages
@@ -27,11 +33,62 @@ export default function FriendProfileScreen({ route, navigation }) {
         .reverse()
         .map(m => m.encryptedContent); // Holds actual image URL natively
 
+    const handleMute = async () => {
+        const result = await muteUser(token, friendId);
+        if (result !== null) {
+            Alert.alert(result ? "Muted" : "Unmuted", `Notifications from ${friendName} have been ${result ? 'muted' : 'unmuted'}.`);
+        }
+    };
+
+    const handleCall = (type) => {
+        initiateCall(friendId, friendName, friendProfilePicture, type);
+        navigation.navigate('Call');
+    };
+
+    const showMenu = () => {
+        Alert.alert(
+            "Manage Contact",
+            "Choose an action",
+            [
+                { text: "Clear Chat", onPress: confirmClearChat },
+                { text: activeFriend?.status === 'blocked' ? "Unblock User" : "Block User", onPress: confirmBlock, style: 'destructive' },
+                { text: "Delete Contact", onPress: () => alert('Feature coming soon'), style: 'destructive' },
+                { text: "Cancel", style: "cancel" }
+            ]
+        );
+    };
+
+    const confirmClearChat = () => {
+        Alert.alert(
+            "Clear Chat",
+            "Are you sure you want to delete all messages? This cannot be undone.",
+            [
+                { text: "Cancel", style: "cancel" },
+                { text: "Clear", onPress: () => clearChat(token, friendId), style: 'destructive' }
+            ]
+        );
+    };
+
+    const confirmBlock = () => {
+        Alert.alert(
+            activeFriend?.status === 'blocked' ? "Unblock" : "Block",
+            `Are you sure you want to ${activeFriend?.status === 'blocked' ? 'unblock' : 'block'} ${friendName}?`,
+            [
+                { text: "Cancel", style: "cancel" },
+                { text: activeFriend?.status === 'blocked' ? "Unblock" : "Block", onPress: () => blockUser(token, friendId), style: 'destructive' }
+            ]
+        );
+    };
+
     const ACTIONS = [
         { icon: 'chatbubble', label: 'Message', onPress: () => navigation.goBack() },
-        { icon: 'notifications', label: 'Mute', onPress: () => {} },
-        { icon: 'call', label: 'Call', onPress: () => {} },
-        { icon: 'videocam', label: 'Video', onPress: () => alert('Requires Standalone Build') }
+        { 
+            icon: isMuted ? 'notifications-off' : 'notifications', 
+            label: isMuted ? 'Unmute' : 'Mute', 
+            onPress: handleMute 
+        },
+        { icon: 'call', label: 'Call', onPress: () => handleCall('audio') },
+        { icon: 'videocam', label: 'Video', onPress: () => handleCall('video') }
     ];
 
     return (
@@ -41,7 +98,7 @@ export default function FriendProfileScreen({ route, navigation }) {
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
                     <Ionicons name="arrow-back" size={26} color={colors.text} />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.iconButton}>
+                <TouchableOpacity onPress={showMenu} style={styles.iconButton}>
                     <Ionicons name="ellipsis-vertical" size={24} color={colors.text} />
                 </TouchableOpacity>
             </View>

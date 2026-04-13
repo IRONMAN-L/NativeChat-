@@ -326,5 +326,52 @@ export const useChatStore = create((set, get) => ({
     if (socket) {
       socket.emit('messageStatusUpdate', { msgId, status: 'seen', senderId, receiverId });
     }
+  },
+
+  muteUser: async (token, friendId) => {
+    try {
+      const response = await axios.put(`${API_URL}/friends/toggle-mute`, { friendId }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const { isMuted } = response.data;
+      set((state) => ({
+        friends: state.friends.map(f => (f.id || f._id) === friendId ? { ...f, isMuted } : f)
+      }));
+      return isMuted;
+    } catch (error) {
+      console.warn('Mute Toggle Error:', error);
+      return null;
+    }
+  },
+
+  blockUser: async (token, friendId) => {
+    try {
+      const response = await axios.put(`${API_URL}/friends/toggle-block`, { friendId }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const { status } = response.data;
+      set((state) => ({
+        friends: status === 'blocked' 
+          ? state.friends.filter(f => (f.id || f._id) !== friendId) 
+          : state.friends.map(f => (f.id || f._id) === friendId ? { ...f, status } : f)
+      }));
+      return status;
+    } catch (error) {
+      console.warn('Block Toggle Error:', error);
+      return null;
+    }
+  },
+
+  clearChat: async (token, friendId) => {
+    try {
+      await axios.delete(`${API_URL}/friends/clear-chat/${friendId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      set({ messages: [] });
+      return true;
+    } catch (error) {
+      console.warn('Clear Chat Error:', error);
+      return false;
+    }
   }
 }));
