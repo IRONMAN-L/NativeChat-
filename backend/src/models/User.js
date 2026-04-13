@@ -46,7 +46,13 @@ const UserSchema = new mongoose.Schema({
     disappearingTimer: {
         type: Number,
         default: 0 // 0 means disabled, otherwise represents hours
-    }
+    },
+    bio: {
+        type: String,
+        maxlength: 160
+    },
+    pendingEmail: String,
+    emailChangeOTP: String,
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', UserSchema);

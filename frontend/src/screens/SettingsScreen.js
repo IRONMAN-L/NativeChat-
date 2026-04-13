@@ -58,6 +58,8 @@ export default function SettingsScreen({ navigation }) {
             navigation.navigate('PrivacySecurity');
         } else if (item.title === t('language')) {
             navigation.navigate('LanguageSettings');
+        } else if (item.title === t('account')) {
+            navigation.navigate('AccountSettings');
         } else {
             Alert.alert(item.title, 'Configuration coming soon!');
         }
@@ -94,14 +96,15 @@ export default function SettingsScreen({ navigation }) {
                 </View>
 
                 <View style={[styles.optionsContainer, { backgroundColor: colors.surface }]}>
-                    <TouchableOpacity style={styles.optionRow}>
+                    <TouchableOpacity style={styles.optionRow} onPress={() => navigation.navigate('AccountSettings')}>
                         <View style={[styles.optionIconContainer, { backgroundColor: '#3498db' }]}>
                             <Ionicons name="person" size={20} color="#FFF" />
                         </View>
                         <View style={styles.optionTextContainer}>
                             <Text style={[styles.optionTitle, { color: colors.text }]}>{t('account')}</Text>
-                            <Text style={styles.optionSubtitle}>Number, Username, Bio</Text>
+                            <Text style={styles.optionSubtitle}>Email, Username, Bio</Text>
                         </View>
+                        <Ionicons name="chevron-forward" size={20} color={colors.textMuted} style={{ marginRight: 16 }} />
                     </TouchableOpacity>
 
                     <TouchableOpacity style={styles.optionRow} onPress={() => navigation.navigate('ChatSettings')}>

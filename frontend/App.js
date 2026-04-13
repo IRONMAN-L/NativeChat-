@@ -32,6 +32,7 @@ import CreateGroupScreen from './src/screens/CreateGroupScreen';
 import GroupChatScreen from './src/screens/GroupChatScreen';
 import GroupProfileScreen from './src/screens/GroupProfileScreen';
 import NotificationSettingsScreen from './src/screens/NotificationSettingsScreen';
+import AccountSettingsScreen from './src/screens/AccountSettingsScreen';
 import { useCallStore } from './src/store/callStore';
 import { useOfflineP2pStore } from './src/store/offlineP2pStore';
 import { usePreferencesStore } from './src/store/preferencesStore';
@@ -263,6 +264,11 @@ export default function App() {
             <Stack.Screen 
               name="NotificationSettings" 
               component={NotificationSettingsScreen} 
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+              name="AccountSettings" 
+              component={AccountSettingsScreen} 
               options={{ headerShown: false }}
             />
           </>

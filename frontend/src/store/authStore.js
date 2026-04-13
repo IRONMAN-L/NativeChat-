@@ -145,6 +145,51 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
+  requestEmailChange: async (token, newEmail) => {
+    try {
+      set({ isLoading: true, error: null });
+      await axios.post(`${API_URL}/auth/email-change/request`, { newEmail }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      set({ isLoading: false });
+      return true;
+    } catch (error) {
+      set({ error: error.response?.data?.error || 'Failed to request email change', isLoading: false });
+      return false;
+    }
+  },
+
+  verifyEmailChange: async (token, otp) => {
+    try {
+      set({ isLoading: true, error: null });
+      const response = await axios.post(`${API_URL}/auth/email-change/verify`, { otp }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const updatedUser = { ...get().user, email: response.data.email };
+      await AsyncStorage.setItem('userData', JSON.stringify(updatedUser));
+      set({ user: updatedUser, isLoading: false });
+      return true;
+    } catch (error) {
+      set({ error: error.response?.data?.error || 'Failed to verify email change', isLoading: false });
+      return false;
+    }
+  },
+
+  deleteAccount: async (token) => {
+    try {
+      set({ isLoading: true, error: null });
+      await axios.delete(`${API_URL}/auth/account`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      await get().signOut();
+      set({ isLoading: false });
+      return true;
+    } catch (error) {
+      set({ error: error.response?.data?.error || 'Failed to delete account', isLoading: false });
+      return false;
+    }
+  },
+
   signOut: async () => {
     await AsyncStorage.removeItem('userToken');
     await AsyncStorage.removeItem('userData');

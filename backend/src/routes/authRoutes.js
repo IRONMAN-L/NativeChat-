@@ -1,5 +1,15 @@
 const express = require('express');
-const { requestOTP, verifyOTP, updateProfile, verifyPIN, setupPIN, updatePrivacySettings } = require('../controllers/authController');
+const { 
+    requestOTP, 
+    verifyOTP, 
+    updateProfile, 
+    verifyPIN, 
+    setupPIN, 
+    updatePrivacySettings,
+    requestEmailChange,
+    verifyEmailChange,
+    deleteAccount
+} = require('../controllers/authController');
 const { protect } = require('../middlewares/authMiddleware');
 
 const router = express.Router();
@@ -13,5 +23,8 @@ router.post('/verify-pin', verifyPIN);
 router.put('/profile', protect, updateProfile);
 router.post('/setup-pin', protect, setupPIN);
 router.put('/privacy', protect, updatePrivacySettings);
+router.post('/email-change/request', protect, requestEmailChange);
+router.post('/email-change/verify', protect, verifyEmailChange);
+router.delete('/account', protect, deleteAccount);
 
 module.exports = router;

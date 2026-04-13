@@ -126,12 +126,13 @@ exports.verifyOTP = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
     try {
-        const { username, displayName, profilePicture } = req.body;
+        const { username, displayName, profilePicture, bio } = req.body;
         const user = req.user;
 
         if (username !== undefined) user.username = username;
         if (displayName !== undefined) user.displayName = displayName;
         if (profilePicture !== undefined) user.profilePicture = profilePicture;
+        if (bio !== undefined) user.bio = bio;
 
         await user.save();
 
@@ -143,6 +144,7 @@ exports.updateProfile = async (req, res) => {
                 username: user.username,
                 displayName: user.displayName,
                 profilePicture: user.profilePicture,
+                bio: user.bio,
                 theme: user.theme,
                 language: user.language,
                 publicKey: user.publicKey,
@@ -238,5 +240,63 @@ exports.updatePrivacySettings = async (req, res) => {
         });
     } catch (error) {
          res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+exports.requestEmailChange = async (req, res) => {
+    try {
+        const { newEmail } = req.body;
+        if (!newEmail) return res.status(400).json({ error: 'New email is required' });
+
+        const normalizedEmail = newEmail.toLowerCase().trim();
+        const existingUser = await User.findOne({ email: normalizedEmail });
+        if (existingUser) return res.status(400).json({ error: 'Email already in use' });
+
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        req.user.pendingEmail = normalizedEmail;
+        req.user.emailChangeOTP = otp;
+        await req.user.save();
+
+        const isSent = await sendOTP(normalizedEmail, otp);
+        if (!isSent) return res.status(500).json({ error: 'Failed to send OTP' });
+
+        console.log(`Email Change OTP for ${normalizedEmail}: ${otp}`);
+        res.status(200).json({ message: 'OTP sent to new email' });
+    } catch (error) {
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+exports.verifyEmailChange = async (req, res) => {
+    try {
+        const { otp } = req.body;
+        if (!req.user.pendingEmail || !req.user.emailChangeOTP) {
+            return res.status(400).json({ error: 'No email change in progress' });
+        }
+
+        if (req.user.emailChangeOTP !== otp) {
+            return res.status(400).json({ error: 'Invalid OTP' });
+        }
+
+        req.user.email = req.user.pendingEmail;
+        req.user.pendingEmail = undefined;
+        req.user.emailChangeOTP = undefined;
+        await req.user.save();
+
+        res.status(200).json({ 
+            message: 'Email updated successfully', 
+            email: req.user.email 
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+exports.deleteAccount = async (req, res) => {
+    try {
+        await User.findByIdAndDelete(req.user._id);
+        res.status(200).json({ message: 'Account deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ error: 'Internal server error' });
     }
 };
