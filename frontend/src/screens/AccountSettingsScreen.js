@@ -23,7 +23,11 @@ export default function AccountSettingsScreen({ navigation }) {
     };
 
     const handleUpdateProfile = async () => {
-        if (!inputValue.trim()) return;
+        // Only displayName is strictly required
+        if (modalVisible === 'displayName' && !inputValue.trim()) {
+            Alert.alert("Error", "Display name cannot be empty");
+            return;
+        }
         setLoading(true);
         const updates = { [modalVisible]: inputValue.trim() };
         const success = await updateProfile(token, updates);
