@@ -51,9 +51,9 @@ export default function GroupProfileScreen({ route, navigation }) {
         return 0;
     });
 
-    const triggerToast = (msg, icon = 'notifications') => {
-        setToast({ visible: true, message: msg, icon });
-        setTimeout(() => setToast({ visible: false, message: '', icon: 'notifications' }), 3000);
+    const triggerToast = (msg, icon = 'notifications', color = '#00e5ff') => {
+        setToast({ visible: true, message: msg, icon, color });
+        setTimeout(() => setToast({ visible: false, message: '', icon: 'notifications', color: '#00e5ff' }), 3000);
     };
 
     const handleLeave = () => {
@@ -426,7 +426,12 @@ export default function GroupProfileScreen({ route, navigation }) {
             {/* Toast */}
             {toast.visible && (
                 <View style={[styles.toastContainer, { backgroundColor: colors.surface }]}>
-                    <Ionicons name={toast.icon} size={20} color="#00e5ff" style={{ marginRight: 10 }} />
+                    <Ionicons 
+                        name={toast.icon || "notifications"} 
+                        size={20} 
+                        color={toast.color || "#00e5ff"} 
+                        style={{ marginRight: 10 }}
+                    />
                     <Text style={[styles.toastText, { color: colors.text }]}>{toast.message}</Text>
                 </View>
             )}

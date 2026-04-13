@@ -17,7 +17,7 @@ export default function FriendProfileScreen({ route, navigation }) {
 
     const { messages, friends, muteUser, blockUser, clearChat } = useChatStore();
     const { user, token } = useAuthStore();
-    const { initiateCall } = useCallStore();
+    const { callUser, callStatus } = useCallStore();
     const { theme } = usePreferencesStore();
     const colors = getThemeColors(theme);
 
@@ -63,8 +63,13 @@ export default function FriendProfileScreen({ route, navigation }) {
         }
     };
 
-    const handleCall = (type) => {
-        initiateCall(friendId, friendName, friendProfilePicture, type);
+    const handleCall = async (type) => {
+        const { isWebRTCSupported } = useCallStore.getState();
+        if (!isWebRTCSupported) {
+            alert("Video Calling requires a Standalone APK. Please wait for your EAS Build to finish or test Chat/Encryption for now!");
+            return;
+        }
+        await callUser(friendId, friendName);
         navigation.navigate('Call');
     };
 

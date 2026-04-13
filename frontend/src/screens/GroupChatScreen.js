@@ -455,11 +455,12 @@ export default function GroupChatScreen({ route, navigation }) {
     };
 
     return (
-        <KeyboardAvoidingView 
-            style={[styles.container, { backgroundColor: colors.background }]} 
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 80}
-        >
+        <View style={{ flex: 1 }}>
+            <KeyboardAvoidingView 
+                style={[styles.container, { backgroundColor: colors.background, flex: 1 }]} 
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 80}
+            >
             {chatWallpaper && (
                 <ImageBackground 
                     source={{ uri: chatWallpaper }} 
@@ -575,6 +576,7 @@ export default function GroupChatScreen({ route, navigation }) {
                 </View>
             )}
 
+            </KeyboardAvoidingView>
             {/* Custom Toast Message */}
             {toast.visible && (
                 <View style={[styles.toastContainer, { backgroundColor: colors.surface }]}>
@@ -587,7 +589,7 @@ export default function GroupChatScreen({ route, navigation }) {
                     <Text style={[styles.toastText, { color: colors.text }]}>{toast.message}</Text>
                 </View>
             )}
-        </KeyboardAvoidingView>
+        </View>
     );
 }
 
