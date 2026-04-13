@@ -99,11 +99,11 @@ exports.getFriends = async (req, res) => {
         }).populate('requesterId recipientId', 'id email username displayName profilePicture status publicKey');
 
         const friendsList = friendships.map(f => {
-            if (f.requesterId._id.toString() === userId) {
-                return f.recipientId;
-            } else {
-                return f.requesterId;
-            }
+            const friendObj = f.requesterId._id.toString() === userId ? f.recipientId.toObject() : f.requesterId.toObject();
+            return {
+                ...friendObj,
+                isStarred: f.isStarred
+            };
         });
 
         res.status(200).json(friendsList);
@@ -125,6 +125,33 @@ exports.getPendingRequests = async (req, res) => {
         res.status(200).json(requests);
     } catch (error) {
         console.error('Get Pending Requests Error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+// Toggle a friend's starred status
+exports.toggleStar = async (req, res) => {
+    const { friendId } = req.body;
+    const userId = req.user.id;
+
+    try {
+        const friendship = await Friend.findOne({
+            $or: [
+                { requesterId: userId, recipientId: friendId },
+                { requesterId: friendId, recipientId: userId }
+            ],
+            status: 'accepted'
+        });
+
+        if (!friendship) {
+            return res.status(404).json({ error: 'Friendship not found' });
+        }
+
+        friendship.isStarred = !friendship.isStarred;
+        await friendship.save();
+
+        res.status(200).json({ isStarred: friendship.isStarred, message: 'Status updated' });
+    } catch (error) {
+        console.error('Toggle Star Error:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 };

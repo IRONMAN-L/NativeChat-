@@ -27,6 +27,27 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
+  toggleStarFriend: async (token, friendId) => {
+    try {
+      const response = await axios.put(`${API_URL}/friends/toggle-star`, { friendId }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      const { isStarred } = response.data;
+      
+      set((state) => ({
+        friends: state.friends.map(f => 
+          (f.id || f._id) === friendId ? { ...f, isStarred } : f
+        )
+      }));
+
+      return isStarred;
+    } catch (error) {
+      console.warn('Error toggling star status:', error.message || error);
+      return null;
+    }
+  },
+
   fetchGroups: async (token) => {
     set({ isLoadingGroups: true });
     try {

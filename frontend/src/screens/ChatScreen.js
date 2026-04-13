@@ -109,20 +109,35 @@ export default function ChatScreen({ route, navigation }) {
                     <Text style={{ color: colors.text, fontSize: 18, fontWeight: 'bold' }}>{friendName}</Text>
                 </TouchableOpacity>
             ),
-            headerRight: () => (
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    {!isOnline && (
-                        <TouchableOpacity style={styles.offlineBtn} onPress={startScan}>
-                            <Text style={styles.offlineText}>{isScanning ? 'Scanning...' : connectedPeer ? 'Local Link' : 'P2P Offline'}</Text>
+            headerRight: () => {
+                const activeFriend = friends.find(f => (f.id || f._id) === friendId);
+                const isStarred = activeFriend?.isStarred || false;
+                
+                return (
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <TouchableOpacity 
+                            onPress={() => toggleStarFriend(token, friendId)} 
+                            style={{ padding: 8 }}
+                        >
+                            <Ionicons 
+                                name={isStarred ? "star" : "star-outline"} 
+                                size={24} 
+                                color={isStarred ? "#FFD700" : "#8A8D9F"} 
+                            />
                         </TouchableOpacity>
-                    )}
-                    <TouchableOpacity onPress={initiateCall} style={{ padding: 8 }}>
-                        <Ionicons name="call" size={24} color="#00e5ff" />
-                    </TouchableOpacity>
-                </View>
-            )
+                        {!isOnline && (
+                            <TouchableOpacity style={styles.offlineBtn} onPress={startScan}>
+                                <Text style={styles.offlineText}>{isScanning ? 'Scanning...' : connectedPeer ? 'Local Link' : 'P2P Offline'}</Text>
+                            </TouchableOpacity>
+                        )}
+                        <TouchableOpacity onPress={initiateCall} style={{ padding: 8 }}>
+                            <Ionicons name="call" size={24} color="#00e5ff" />
+                        </TouchableOpacity>
+                    </View>
+                );
+            }
         });
-    }, [navigation, friendName, friendId, friendProfilePicture, isOnline, isScanning, connectedPeer, colors]);
+    }, [navigation, friendName, friendId, friendProfilePicture, isOnline, isScanning, connectedPeer, colors, friends]);
     
     // Cleanup recordings on unmount
     useEffect(() => {

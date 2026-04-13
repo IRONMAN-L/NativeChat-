@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Image } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import axios from 'axios';
 import { useAuthStore } from '../store/authStore';
@@ -170,16 +171,23 @@ export default function FriendsScreen({ navigation }) {
           )}
 
           <FlatList
-            data={friends}
+            data={[...friends].sort((a, b) => (b.isStarred ? 1 : 0) - (a.isStarred ? 1 : 0))}
             keyExtractor={(item) => item._id || item.id}
             ListHeaderComponent={<Text style={styles.listSectionTitle}>Your Friends</Text>}
             renderItem={({ item }) => (
               <TouchableOpacity style={styles.friendCard} onPress={() => navigateToChat(item)}>
-                <View style={styles.avatarPlaceholder}>
-                  <Text style={styles.avatarText}>{item.email?.charAt(0).toUpperCase()}</Text>
+                <View style={[styles.avatarPlaceholder, item.isStarred && { borderColor: '#FFD700', borderWidth: 2 }]}>
+                  {item.profilePicture ? (
+                    <Image source={{ uri: item.profilePicture }} style={{ width: 44, height: 44, borderRadius: 22 }} />
+                  ) : (
+                    <Text style={styles.avatarText}>{item.email?.charAt(0).toUpperCase()}</Text>
+                  )}
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.friendName}>{item.displayName || item.username || item.email?.split('@')[0]}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text style={styles.friendName}>{item.displayName || item.username || item.email?.split('@')[0]}</Text>
+                    {item.isStarred && <Ionicons name="star" size={14} color="#FFD700" style={{ marginLeft: 6 }} />}
+                  </View>
                   <Text style={styles.friendEmail}>{item.status === 'online' ? '🟢 Online' : '⚪ Offline'}</Text>
                 </View>
               </TouchableOpacity>

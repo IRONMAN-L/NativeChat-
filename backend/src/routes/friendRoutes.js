@@ -1,5 +1,5 @@
 const express = require('express');
-const { searchUsers, sendFriendRequest, acceptFriendRequest, getFriends, getPendingRequests } = require('../controllers/friendController');
+const { searchUsers, sendFriendRequest, acceptFriendRequest, getFriends, getPendingRequests, toggleStar } = require('../controllers/friendController');
 const { protect } = require('../middlewares/authMiddleware');
 
 const router = express.Router();
@@ -10,6 +10,7 @@ router.get('/search', searchUsers);
 router.post('/request', sendFriendRequest);
 router.get('/requests/pending', getPendingRequests);
 router.put('/accept', acceptFriendRequest);
+router.put('/toggle-star', toggleStar);
 router.get('/', getFriends);
 
 module.exports = router;

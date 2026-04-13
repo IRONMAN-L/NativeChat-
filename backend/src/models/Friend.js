@@ -15,6 +15,10 @@ const FriendSchema = new mongoose.Schema({
         type: String,
         enum: ['pending', 'accepted', 'blocked'],
         default: 'pending'
+    },
+    isStarred: {
+        type: Boolean,
+        default: false
     }
 }, { timestamps: true });
 
