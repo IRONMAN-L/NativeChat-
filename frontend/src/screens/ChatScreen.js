@@ -68,6 +68,7 @@ export default function ChatScreen({ route, navigation }) {
     const recordingInterval = useRef(null);
     const [videoThumbnails, setVideoThumbnails] = useState({}); // msgId -> uri
     const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
+    const [toast, setToast] = useState({ visible: false, message: '', icon: 'notifications' });
 
     useEffect(() => {
         // Ensure friends (and their public keys) are loaded
@@ -117,7 +118,7 @@ export default function ChatScreen({ route, navigation }) {
                 return (
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                         <TouchableOpacity 
-                            onPress={() => toggleStarFriend(token, friendId)} 
+                            onPress={handleToggleStar} 
                             style={{ padding: 8 }}
                         >
                             <Ionicons 
@@ -146,6 +147,18 @@ export default function ChatScreen({ route, navigation }) {
         });
     }, [navigation, friendName, friendId, friendProfilePicture, isOnline, isScanning, connectedPeer, colors, friends]);
 
+    const triggerToast = (msg, icon = 'notifications') => {
+        setToast({ visible: true, message: msg, icon });
+        setTimeout(() => setToast({ visible: false, message: '', icon: 'notifications' }), 3000);
+    };
+
+    const handleToggleStar = async () => {
+        const result = await toggleStarFriend(token, friendId);
+        if (result !== null) {
+            triggerToast(result ? "Added to favorites" : "Removed from favorites", result ? "star" : "star-outline");
+        }
+    };
+
     const handleSetReminder = async (minutes) => {
         setShowReminderMenu(false);
         const lastMsgText = chatMessages.length > 0 ? chatMessages[chatMessages.length - 1].encryptedContent : "Reply to chat";
@@ -161,7 +174,7 @@ export default function ChatScreen({ route, navigation }) {
                 notificationId,
                 messagePreview: lastMsgText
             });
-            Alert.alert("Reminder Set", `I'll remind you to reply to ${friendName} in ${minutes} minutes! ⏰`);
+            triggerToast(`Reminder set for ${minutes} minutes!`, "timer");
         }
     };
     
@@ -735,6 +748,19 @@ export default function ChatScreen({ route, navigation }) {
                     },
                 }}
             />
+
+            {/* Custom Toast Message */}
+            {toast.visible && (
+                <View style={[styles.toastContainer, { backgroundColor: colors.surface }]}>
+                    <Ionicons 
+                        name={toast.icon} 
+                        size={20} 
+                        color="#00e5ff" 
+                        style={{ marginRight: 10 }}
+                    />
+                    <Text style={[styles.toastText, { color: colors.text }]}>{toast.message}</Text>
+                </View>
+            )}
         </KeyboardAvoidingView>
     );
 }
@@ -797,6 +823,27 @@ const styles = StyleSheet.create({
     },
     theirMessageText: {
         color: '#fff',
+    },
+    toastContainer: {
+        position: 'absolute',
+        bottom: Platform.OS === 'ios' ? 100 : 80,
+        left: 20,
+        right: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderRadius: 12,
+        elevation: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 5,
+        zIndex: 2000,
+    },
+    toastText: {
+        fontSize: 14,
+        fontWeight: '500',
     },
     timestamp: {
         fontSize: 11,
