@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Image } from 'react-native';
+import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Image, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import axios from 'axios';
@@ -225,6 +225,7 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 16,
+    paddingTop: Platform.OS === 'android' ? 40 : 20,
     backgroundColor: '#0F1014',
   },
   searchInput: {
