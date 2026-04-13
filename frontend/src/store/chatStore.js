@@ -479,5 +479,20 @@ export const useChatStore = create((set, get) => ({
       console.warn('Toggle Mute Group Error:', error);
       return null;
     }
+  },
+
+  deleteGroup: async (token, groupId) => {
+    try {
+      await axios.delete(`${API_URL}/groups/${groupId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      set((state) => ({
+        groups: state.groups.filter(g => (g.id || g._id) !== groupId)
+      }));
+      return true;
+    } catch (error) {
+      console.warn('Delete Group Error:', error);
+      return false;
+    }
   }
 }));

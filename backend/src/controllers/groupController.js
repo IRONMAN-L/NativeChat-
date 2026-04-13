@@ -202,3 +202,24 @@ exports.toggleMuteGroup = async (req, res) => {
         res.status(500).json({ error: 'Failed to toggle mute' });
     }
 };
+
+// Delete group (Admin only)
+exports.deleteGroup = async (req, res) => {
+    try {
+        const { groupId } = req.params;
+        const group = await Group.findById(groupId);
+        if (!group) return res.status(404).json({ error: 'Group not found' });
+
+        if (!group.adminIds.includes(req.user._id)) {
+            return res.status(403).json({ error: 'Only admins can delete the group' });
+        }
+
+        await Group.findByIdAndDelete(groupId);
+        await GroupMessage.deleteMany({ groupId });
+        
+        res.status(200).json({ message: 'Group and history deleted successfully' });
+    } catch (error) {
+        console.error('Delete Group Error:', error);
+        res.status(500).json({ error: 'Failed to delete group' });
+    }
+};

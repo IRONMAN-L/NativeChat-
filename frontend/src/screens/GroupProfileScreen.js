@@ -17,7 +17,7 @@ export default function GroupProfileScreen({ route, navigation }) {
     const [searchFriend, setSearchFriend] = useState('');
     const [toast, setToast] = useState({ visible: false, message: '', icon: 'notifications' });
 
-    const { messages, groups, friends, updateGroupInfo, addMembersToGroup, leaveGroup, clearGroupMessages, toggleMuteGroup } = useChatStore();
+    const { messages, groups, friends, updateGroupInfo, addMembersToGroup, leaveGroup, clearGroupMessages, toggleMuteGroup, deleteGroup } = useChatStore();
     const { user, token } = useAuthStore();
     const { theme } = usePreferencesStore();
     const colors = getThemeColors(theme);
@@ -104,11 +104,41 @@ export default function GroupProfileScreen({ route, navigation }) {
     const handleClearChat = () => {
         setShowMenu(false);
         Alert.alert(
-            "Clear Chat",
-            "This will delete all messages in this group. Action cannot be undone.",
+            "Clear Group Chat",
+            "This will delete all messages for everyone in this group. Action cannot be undone.",
             [
                 { text: "Cancel", style: "cancel" },
-                { text: "Clear", onPress: () => clearGroupMessages(token, groupId), style: 'destructive' }
+                { 
+                    text: "Clear", 
+                    onPress: async () => {
+                        const success = await clearGroupMessages(token, groupId);
+                        if (success) triggerToast("Chat history cleared", "trash-outline");
+                    }, 
+                    style: 'destructive' 
+                }
+            ]
+        );
+    };
+
+    const handleDeleteGroup = () => {
+        setShowMenu(false);
+        if (!isAdmin) return;
+        
+        Alert.alert(
+            "Delete Group",
+            "Are you sure you want to PERMANENTLY delete this group and its history? This action is irreversible.",
+            [
+                { text: "Cancel", style: "cancel" },
+                { 
+                    text: "Delete Everywhere", 
+                    onPress: async () => {
+                        const success = await deleteGroup(token, groupId);
+                        if (success) {
+                            navigation.popToTop();
+                        }
+                    }, 
+                    style: 'destructive' 
+                }
             ]
         );
     };
@@ -117,23 +147,67 @@ export default function GroupProfileScreen({ route, navigation }) {
         setShowMenu(false);
         if (!isAdmin) return;
         
-        Alert.prompt(
-            "Edit Group Name",
-            "Enter new group name",
+        Alert.alert(
+            "Edit Group",
+            "Choose an option to update",
             [
-                { text: "Cancel", style: "cancel" },
-                { 
-                    text: "Update", 
-                    onPress: async (newName) => {
-                        if (newName) {
-                            await updateGroupInfo(token, groupId, { name: newName });
-                            triggerToast("Group name updated", "checkmark-circle");
+                { text: "Change Name", onPress: () => {
+                    Alert.prompt(
+                        "Edit Group Name",
+                        "Enter new group name",
+                        [
+                            { text: "Cancel", style: "cancel" },
+                            { 
+                                text: "Update", 
+                                onPress: async (newName) => {
+                                    if (newName) {
+                                        await updateGroupInfo(token, groupId, { name: newName });
+                                        triggerToast("Group name updated", "checkmark-circle");
+                                    }
+                                } 
+                            }
+                        ],
+                        'plain-text',
+                        group.name
+                    );
+                }},
+                { text: "Change Icon", onPress: async () => {
+                    const { API_URL } = require('../config');
+                    const axios = require('axios');
+                    const { launchImageLibraryAsync, MediaTypeOptions } = require('expo-image-picker');
+                    
+                    const result = await launchImageLibraryAsync({
+                        mediaTypes: MediaTypeOptions.Images,
+                        allowsEditing: true,
+                        aspect: [1, 1],
+                        quality: 0.5,
+                    });
+
+                    if (!result.canceled) {
+                        const asset = result.assets[0];
+                        const formData = new FormData();
+                        formData.append('media', {
+                            uri: asset.uri,
+                            name: `group_${groupId}.jpg`,
+                            type: 'image/jpeg'
+                        });
+
+                        try {
+                            const res = await axios.post(`${API_URL}/uploads`, formData, {
+                                headers: { 
+                                    'Content-Type': 'multipart/form-data',
+                                    'Authorization': `Bearer ${token}` 
+                                }
+                            });
+                            await updateGroupInfo(token, groupId, { iconUrl: res.data.fileUrl });
+                            triggerToast("Group icon updated", "image-outline");
+                        } catch (e) {
+                            console.error(e);
                         }
-                    } 
-                }
-            ],
-            'plain-text',
-            group.name
+                    }
+                }},
+                { text: "Cancel", style: "cancel" }
+            ]
         );
     };
 
@@ -329,6 +403,15 @@ export default function GroupProfileScreen({ route, navigation }) {
                             </View>
                             <Text style={[styles.menuItemText, { color: colors.text }]}>Clear Group Chat</Text>
                         </TouchableOpacity>
+
+                        {isAdmin && (
+                            <TouchableOpacity style={styles.menuItem} onPress={handleDeleteGroup}>
+                                <View style={[styles.menuIconContainer, { backgroundColor: 'rgba(231, 76, 60, 0.1)' }]}>
+                                    <Ionicons name="ban-outline" size={22} color="#e74c3c" />
+                                </View>
+                                <Text style={[styles.menuItemText, { color: '#e74c3c' }]}>Delete Group</Text>
+                            </TouchableOpacity>
+                        )}
 
                         <TouchableOpacity 
                             style={[styles.cancelButton, { backgroundColor: colors.background, marginTop: 20 }]} 
