@@ -5,7 +5,8 @@ const GroupSchema = new mongoose.Schema({
     iconUrl: { type: String, default: null },
     adminIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     memberIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-    starredBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+    starredBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    mutedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
 }, { timestamps: true });
 
 module.exports = mongoose.model('Group', GroupSchema);

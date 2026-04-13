@@ -178,3 +178,27 @@ exports.toggleStarGroup = async (req, res) => {
         res.status(500).json({ error: 'Failed to toggle star' });
     }
 };
+
+// Toggle mute status for group per user
+exports.toggleMuteGroup = async (req, res) => {
+    try {
+        const { groupId } = req.body;
+        const group = await Group.findById(groupId);
+        if (!group) return res.status(404).json({ error: 'Group not found' });
+
+        const userId = req.user._id;
+        const isMuted = group.mutedBy.includes(userId);
+
+        if (isMuted) {
+            group.mutedBy = group.mutedBy.filter(id => id.toString() !== userId.toString());
+        } else {
+            group.mutedBy.push(userId);
+        }
+
+        await group.save();
+        res.status(200).json({ isMuted: !isMuted });
+    } catch (error) {
+        console.error('Toggle Mute Group Error:', error);
+        res.status(500).json({ error: 'Failed to toggle mute' });
+    }
+};

@@ -5,21 +5,42 @@ import { useChatStore } from '../store/chatStore';
 import { useAuthStore } from '../store/authStore';
 import { usePreferencesStore } from '../store/preferencesStore';
 import { getThemeColors } from '../theme/colors';
+import { Share, Modal, TextInput } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
 export default function GroupProfileScreen({ route, navigation }) {
     const { groupId, groupName } = route.params;
     const [showMenu, setShowMenu] = useState(false);
+    const [activeTab, setActiveTab] = useState('Media');
+    const [showMemberPicker, setShowMemberPicker] = useState(false);
+    const [searchFriend, setSearchFriend] = useState('');
     const [toast, setToast] = useState({ visible: false, message: '', icon: 'notifications' });
 
-    const { messages, groups, updateGroupInfo, addMembersToGroup, leaveGroup, clearGroupMessages } = useChatStore();
+    const { messages, groups, friends, updateGroupInfo, addMembersToGroup, leaveGroup, clearGroupMessages, toggleMuteGroup } = useChatStore();
     const { user, token } = useAuthStore();
     const { theme } = usePreferencesStore();
     const colors = getThemeColors(theme);
 
     const group = groups.find(g => (g.id || g._id) === groupId);
     const isAdmin = group?.adminIds?.includes(user.id);
+    const isMuted = group?.mutedBy?.includes(user.id);
+
+    // Extract group media
+    const groupMedia = messages
+        .filter(m => m.groupId === groupId && m.mediaType === 'image')
+        .reverse()
+        .map(m => m.encryptedContent);
+
+    // Friends not in group
+    const availableFriends = friends.filter(f => {
+        const friendId = f.id || f._id;
+        const alreadyIn = group.memberIds.some(m => (m.id || m._id) === friendId);
+        if (alreadyIn) return false;
+        if (!searchFriend) return true;
+        const q = searchFriend.toLowerCase();
+        return (f.displayName || f.username || f.email).toLowerCase().includes(q);
+    });
 
     // Sort members: current user first (?), then admins, then others
     const sortedMembers = [...(group?.memberIds || [])].sort((a, b) => {
@@ -55,14 +76,29 @@ export default function GroupProfileScreen({ route, navigation }) {
         );
     };
 
-    const handleAddMember = () => {
-        if (!isAdmin) {
-            alert("Only admins can add members.");
-            return;
+    const handleAddMember = async (friendId) => {
+        const result = await addMembersToGroup(token, groupId, [friendId]);
+        if (result) {
+            triggerToast("Member added successfully", "person-add");
         }
-        // In a real app, this would navigate to a contact picker
-        // For now, let's show a placeholder alert
-        alert("Member picker coming soon!");
+    };
+
+    const handleToggleMute = async () => {
+        const result = await toggleMuteGroup(token, groupId, user.id);
+        if (result !== null) {
+            triggerToast(result ? "Notifications muted" : "Notifications unmuted", result ? "notifications-off" : "notifications");
+        }
+    };
+
+    const handleShare = async () => {
+        try {
+            await Share.share({
+                message: `Join our group "${group.name}" on ChatWithMe! Group ID: ${groupId}`,
+                title: 'Group Invitation'
+            });
+        } catch (error) {
+            console.error(error.message);
+        }
     };
 
     const handleClearChat = () => {
@@ -102,10 +138,15 @@ export default function GroupProfileScreen({ route, navigation }) {
     };
 
     const ACTIONS = [
-        { icon: 'person-add', label: 'Add', onPress: handleAddMember, color: '#00e5ff' },
+        { icon: 'person-add', label: 'Add', onPress: () => isAdmin ? setShowMemberPicker(true) : triggerToast("Admins only", "lock-closed"), color: '#00e5ff' },
         { icon: 'log-out', label: 'Leave', onPress: handleLeave, color: '#ff4081' },
-        { icon: 'notifications', label: 'Mute', onPress: () => triggerToast("Mute coming soon"), color: '#8A8D9F' },
-        { icon: 'share-social', label: 'Share', onPress: () => triggerToast("Sharing coming soon"), color: '#8A8D9F' }
+        { 
+            icon: isMuted ? 'notifications-off' : 'notifications', 
+            label: isMuted ? 'Unmute' : 'Mute', 
+            onPress: handleToggleMute, 
+            color: isMuted ? '#ff4081' : '#8A8D9F' 
+        },
+        { icon: 'share-social', label: 'Share', onPress: handleShare, color: '#00e5ff' }
     ];
 
     const renderMember = ({ item }) => {
@@ -173,8 +214,91 @@ export default function GroupProfileScreen({ route, navigation }) {
                     ))}
                 </View>
 
+                {/* Tab Controller */}
+                <View style={styles.tabContainer}>
+                    {['Media', 'Files', 'Links'].map((tab) => (
+                        <TouchableOpacity 
+                            key={tab} 
+                            style={[styles.tabButton, activeTab === tab && { backgroundColor: 'rgba(0, 229, 255, 0.1)' }]}
+                            onPress={() => setActiveTab(tab)}
+                        >
+                            <Text style={[styles.tabText, { color: activeTab === tab ? '#00e5ff' : colors.textMuted }]}>{tab}</Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+
+                {/* Tab Content */}
+                {activeTab === 'Media' && (
+                    <View style={styles.mediaGrid}>
+                        {groupMedia.length > 0 ? (
+                            groupMedia.map((url, i) => (
+                                <Image key={i} source={{ uri: url }} style={styles.gridImage} />
+                            ))
+                        ) : (
+                            <Text style={styles.noMediaText}>No media shared yet</Text>
+                        )}
+                    </View>
+                )}
+
+                {activeTab !== 'Media' && (
+                    <View style={styles.placeholderSection}>
+                        <Ionicons name={activeTab === 'Files' ? 'document-outline' : 'link-outline'} size={48} color={colors.surfaceHighlight} />
+                        <Text style={[styles.noMediaText, { marginTop: 12 }]}>No {activeTab.toLowerCase()} shared in this group</Text>
+                    </View>
+                )}
+
                 <View style={{ height: 40 }} />
             </ScrollView>
+
+            {/* Member Picker Modal */}
+            <Modal
+                visible={showMemberPicker}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={() => setShowMemberPicker(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.pickerContainer, { backgroundColor: colors.background }]}>
+                        <View style={styles.pickerHeader}>
+                            <Text style={[styles.pickerTitle, { color: colors.text }]}>Add Members</Text>
+                            <TouchableOpacity onPress={() => setShowMemberPicker(false)}>
+                                <Ionicons name="close" size={24} color={colors.text} />
+                            </TouchableOpacity>
+                        </View>
+                        <View style={[styles.searchContainer, { backgroundColor: colors.surface }]}>
+                            <Ionicons name="search" size={20} color={colors.textMuted} />
+                            <TextInput
+                                style={[styles.searchInput, { color: colors.text }]}
+                                placeholder="Search friends..."
+                                placeholderTextColor={colors.textMuted}
+                                value={searchFriend}
+                                onChangeText={setSearchFriend}
+                            />
+                        </View>
+                        <FlatList
+                            data={availableFriends}
+                            keyExtractor={(item) => item.id || item._id}
+                            renderItem={({ item }) => (
+                                <TouchableOpacity 
+                                    style={styles.pickerItem}
+                                    onPress={() => {
+                                        handleAddMember(item.id || item._id);
+                                        setShowMemberPicker(false);
+                                    }}
+                                >
+                                    <Image source={{ uri: item.profilePicture || `https://i.pravatar.cc/150?u=${item.id || item._id}` }} style={styles.pickerAvatar} />
+                                    <View>
+                                        <Text style={[styles.pickerName, { color: colors.text }]}>{item.displayName || item.username}</Text>
+                                        <Text style={styles.pickerEmail}>{item.email}</Text>
+                                    </View>
+                                    <Ionicons name="add-circle" size={26} color="#00e5ff" style={{ marginLeft: 'auto' }} />
+                                </TouchableOpacity>
+                            )}
+                            ListEmptyComponent={<Text style={styles.noMediaText}>No friends to add</Text>}
+                        />
+                    </View>
+                </View>
+            </Modal>
 
             {/* Menu Modal */}
             {showMenu && (
@@ -266,6 +390,22 @@ const styles = StyleSheet.create({
     menuItemText: { fontSize: 16, fontWeight: '500' },
     cancelButton: { paddingVertical: 14, borderRadius: 16, alignItems: 'center' },
     cancelButtonText: { fontSize: 16, fontWeight: 'bold' },
+    tabContainer: { flexDirection: 'row', marginTop: 24, marginBottom: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+    tabButton: { paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 2, borderBottomColor: 'transparent' },
+    tabText: { fontSize: 13, fontWeight: 'bold', textTransform: 'uppercase' },
+    mediaGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 4 },
+    gridImage: { width: (width - 40) / 3, height: (width - 40) / 3, margin: 2, borderRadius: 8 },
+    noMediaText: { color: '#8A8D9F', textAlign: 'center', marginTop: 32, fontSize: 14, width: '100%' },
+    placeholderSection: { alignItems: 'center', justifyContent: 'center', marginTop: 40 },
+    pickerContainer: { flex: 0.8, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20 },
+    pickerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+    pickerTitle: { fontSize: 20, fontWeight: 'bold' },
+    searchContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, borderRadius: 12, height: 44, marginBottom: 16 },
+    searchInput: { flex: 1, marginLeft: 10, fontSize: 16 },
+    pickerItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.05)' },
+    pickerAvatar: { width: 44, height: 44, borderRadius: 15, marginRight: 12 },
+    pickerName: { fontSize: 16, fontWeight: 'bold' },
+    pickerEmail: { fontSize: 12, color: '#8A8D9F' },
     toastContainer: {
         position: 'absolute',
         bottom: Platform.OS === 'ios' ? 100 : 40,

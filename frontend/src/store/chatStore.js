@@ -455,5 +455,29 @@ export const useChatStore = create((set, get) => ({
       console.warn('Toggle Star Group Error:', error);
       return null;
     }
+  },
+
+  toggleMuteGroup: async (token, groupId, userId) => {
+    try {
+      const response = await axios.post(`${API_URL}/groups/toggle-mute`, { groupId }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const { isMuted } = response.data;
+      set((state) => ({
+        groups: state.groups.map(g => {
+            if ((g.id || g._id) === groupId) {
+                const mutedBy = isMuted 
+                    ? [...(g.mutedBy || []), userId]
+                    : (g.mutedBy || []).filter(id => id.toString() !== userId.toString());
+                return { ...g, mutedBy };
+            }
+            return g;
+        })
+      }));
+      return isMuted;
+    } catch (error) {
+      console.warn('Toggle Mute Group Error:', error);
+      return null;
+    }
   }
 }));
