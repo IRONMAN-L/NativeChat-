@@ -12,6 +12,7 @@ const GRID_ITEM_SIZE = (width - 32 - 16) / 3; // 3 columns with padding
 export default function FriendProfileScreen({ route, navigation }) {
     const { friendId, friendName, friendProfilePicture, friendEmail, friendUsername } = route.params;
     const [activeTab, setActiveTab] = useState('Media');
+    const [showMenu, setShowMenu] = useState(false);
 
     const { messages, friends, muteUser, blockUser, clearChat } = useChatStore();
     const { user, token } = useAuthStore();
@@ -45,17 +46,18 @@ export default function FriendProfileScreen({ route, navigation }) {
         navigation.navigate('Call');
     };
 
-    const showMenu = () => {
-        Alert.alert(
-            "Manage Contact",
-            "Choose an action",
-            [
-                { text: "Clear Chat", onPress: confirmClearChat },
-                { text: activeFriend?.status === 'blocked' ? "Unblock User" : "Block User", onPress: confirmBlock, style: 'destructive' },
-                { text: "Delete Contact", onPress: () => alert('Feature coming soon'), style: 'destructive' },
-                { text: "Cancel", style: "cancel" }
-            ]
-        );
+    const handleShowMenu = () => {
+        setShowMenu(true);
+    };
+
+    const handleClearChat = () => {
+        setShowMenu(false);
+        confirmClearChat();
+    };
+
+    const handleBlockUser = () => {
+        setShowMenu(false);
+        confirmBlock();
     };
 
     const confirmClearChat = () => {
@@ -98,7 +100,7 @@ export default function FriendProfileScreen({ route, navigation }) {
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
                     <Ionicons name="arrow-back" size={26} color={colors.text} />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={showMenu} style={styles.iconButton}>
+                <TouchableOpacity onPress={handleShowMenu} style={styles.iconButton}>
                     <Ionicons name="ellipsis-vertical" size={24} color={colors.text} />
                 </TouchableOpacity>
             </View>
@@ -174,6 +176,53 @@ export default function FriendProfileScreen({ route, navigation }) {
                 {/* Extra padding at very bottom */}
                 <View style={{ height: 40 }} />
             </ScrollView>
+
+            {/* Custom Themed Menu Modal */}
+            {showMenu && (
+                <View style={styles.modalOverlay}>
+                    <TouchableOpacity 
+                        activeOpacity={1} 
+                        style={styles.modalBackdrop} 
+                        onPress={() => setShowMenu(false)} 
+                    />
+                    <View style={[styles.menuContainer, { backgroundColor: colors.surface }]}>
+                        <View style={styles.menuHeader}>
+                            <View style={styles.menuHandle} />
+                            <Text style={[styles.menuTitle, { color: colors.text }]}>Manage Contact</Text>
+                        </View>
+
+                        <TouchableOpacity style={styles.menuItem} onPress={handleClearChat}>
+                            <View style={[styles.menuIconContainer, { backgroundColor: 'rgba(52, 152, 219, 0.1)' }]}>
+                                <Ionicons name="trash-outline" size={22} color="#3498db" />
+                            </View>
+                            <Text style={[styles.menuItemText, { color: colors.text }]}>Clear Chat</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={styles.menuItem} onPress={handleBlockUser}>
+                            <View style={[styles.menuIconContainer, { backgroundColor: 'rgba(231, 76, 60, 0.1)' }]}>
+                                <Ionicons name="ban-outline" size={22} color="#e74c3c" />
+                            </View>
+                            <Text style={[styles.menuItemText, { color: '#e74c3c' }]}>
+                                {activeFriend?.status === 'blocked' ? "Unblock User" : "Block User"}
+                            </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={styles.menuItem} onPress={() => { setShowMenu(false); alert('Coming soon'); }}>
+                            <View style={[styles.menuIconContainer, { backgroundColor: 'rgba(149, 165, 166, 0.1)' }]}>
+                                <Ionicons name="person-remove-outline" size={22} color="#95a5a6" />
+                            </View>
+                            <Text style={[styles.menuItemText, { color: colors.text }]}>Delete Contact</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity 
+                            style={[styles.cancelButton, { backgroundColor: colors.background }]} 
+                            onPress={() => setShowMenu(false)}
+                        >
+                            <Text style={[styles.cancelButtonText, { color: colors.text }]}>Cancel</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            )}
         </SafeAreaView>
     );
 }
@@ -303,5 +352,62 @@ const styles = StyleSheet.create({
         marginTop: 20,
         width: '100%',
         textAlign: 'center',
+    },
+    modalOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        zIndex: 1000,
+        justifyContent: 'flex-end',
+    },
+    modalBackdrop: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.7)',
+    },
+    menuContainer: {
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        padding: 20,
+        paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+    },
+    menuHeader: {
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    menuHandle: {
+        width: 40,
+        height: 4,
+        backgroundColor: '#333',
+        borderRadius: 2,
+        marginBottom: 12,
+    },
+    menuTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+    menuItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 14,
+    },
+    menuIconContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 16,
+    },
+    menuItemText: {
+        fontSize: 16,
+        fontWeight: '500',
+    },
+    cancelButton: {
+        marginTop: 10,
+        paddingVertical: 14,
+        borderRadius: 16,
+        alignItems: 'center',
+    },
+    cancelButtonText: {
+        fontSize: 16,
+        fontWeight: 'bold',
     }
 });
