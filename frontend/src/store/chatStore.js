@@ -4,6 +4,14 @@ import axios from 'axios';
 import { encryptMessage, decryptMessage } from '../utils/crypto';
 import { useOfflineP2pStore } from './offlineP2pStore';
 import { API_URL, SOCKET_URL } from '../config';
+import { usePreferencesStore } from './preferencesStore';
+
+let Notifications = null;
+try {
+  Notifications = require('expo-notifications');
+} catch (e) {
+  console.log("Notifications not supported in ChatStore");
+}
 
 export const useChatStore = create((set, get) => ({
   socket: null,
@@ -159,6 +167,20 @@ export const useChatStore = create((set, get) => ({
       set((state) => ({
         messages: [...state.messages, decryptedMessage],
       }));
+
+      // Trigger Local Notification
+      const { notificationsEnabled } = usePreferencesStore.getState();
+      if (notificationsEnabled && Notifications) {
+         Notifications.scheduleNotificationAsync({
+           content: {
+             title: `New message from ${friend?.displayName || friend?.username || 'Friend'}`,
+             body: decryptedContent.length > 50 ? decryptedContent.substring(0, 50) + '...' : decryptedContent,
+             data: { friendId: message.senderId, type: 'chat' },
+             sound: true,
+           },
+           trigger: null, // show immediately
+         });
+      }
     });
 
     newSocket.on('receiveGroupMessage', async (message) => {
@@ -178,6 +200,21 @@ export const useChatStore = create((set, get) => ({
       set((state) => ({
         messages: [...state.messages, { ...message, encryptedContent: decryptedContent, fileName: message.fileName }],
       }));
+
+      // Trigger Local Notification for Group
+      const { notificationsEnabled } = usePreferencesStore.getState();
+      const sender = group?.memberIds.find(m => (m._id || m.id) === message.senderId);
+      if (notificationsEnabled && Notifications) {
+         Notifications.scheduleNotificationAsync({
+           content: {
+             title: `${group?.name || 'Group'}: ${sender?.displayName || sender?.username || 'Member'}`,
+             body: decryptedContent.length > 50 ? decryptedContent.substring(0, 50) + '...' : decryptedContent,
+             data: { groupId: message.groupId, type: 'group' },
+             sound: true,
+           },
+           trigger: null,
+         });
+      }
     });
 
     newSocket.on('messageStatusUpdate', ({ msgId, status, clientMsgId }) => {
