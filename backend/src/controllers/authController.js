@@ -116,7 +116,8 @@ exports.verifyOTP = async (req, res) => {
                 language: user.language,
                 publicKey: user.publicKey,
                 readReceipts: user.readReceipts,
-                disappearingTimer: user.disappearingTimer
+                disappearingTimer: user.disappearingTimer,
+                isTwoStepSet: !!user.twoStepPin
             }
         });
     } catch (error) {
@@ -150,7 +151,8 @@ exports.updateProfile = async (req, res) => {
                 language: user.language,
                 publicKey: user.publicKey,
                 readReceipts: user.readReceipts,
-                disappearingTimer: user.disappearingTimer
+                disappearingTimer: user.disappearingTimer,
+                isTwoStepSet: !!user.twoStepPin
             }
         });
     } catch (error) {
@@ -186,7 +188,8 @@ exports.verifyPIN = async (req, res) => {
                 language: user.language,
                 publicKey: user.publicKey,
                 readReceipts: user.readReceipts,
-                disappearingTimer: user.disappearingTimer
+                disappearingTimer: user.disappearingTimer,
+                isTwoStepSet: !!user.twoStepPin
             }
         });
     } catch (error) {
@@ -238,7 +241,8 @@ exports.updatePrivacySettings = async (req, res) => {
                 language: user.language,
                 publicKey: user.publicKey,
                 readReceipts: user.readReceipts,
-                disappearingTimer: user.disappearingTimer
+                disappearingTimer: user.disappearingTimer,
+                isTwoStepSet: !!user.twoStepPin
             }
         });
     } catch (error) {

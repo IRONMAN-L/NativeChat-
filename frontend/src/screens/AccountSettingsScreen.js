@@ -207,7 +207,18 @@ export default function AccountSettingsScreen({ navigation }) {
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
-    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 60, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
+    header: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        paddingHorizontal: 16, 
+        height: Platform.OS === 'android' ? 90 : 70, 
+        paddingTop: Platform.OS === 'android' ? 30 : 10,
+        elevation: 2, 
+        shadowColor: '#000', 
+        shadowOffset: { width: 0, height: 1 }, 
+        shadowOpacity: 0.1, 
+        shadowRadius: 2 
+    },
     backButton: { padding: 8, marginRight: 8 },
     headerTitle: { fontSize: 20, fontWeight: 'bold' },
     scrollContent: { paddingVertical: 20 },
