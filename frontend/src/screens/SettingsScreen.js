@@ -124,6 +124,16 @@ export default function SettingsScreen({ navigation }) {
                         </View>
                     </TouchableOpacity>
 
+                    <TouchableOpacity style={styles.optionRow} onPress={() => navigation.navigate('NotificationSettings')}>
+                        <View style={[styles.optionIconContainer, { backgroundColor: '#e74c3c' }]}>
+                            <Ionicons name="notifications" size={20} color="#FFF" />
+                        </View>
+                        <View style={styles.optionTextContainer}>
+                            <Text style={[styles.optionTitle, { color: colors.text }]}>{t('notifications')}</Text>
+                            <Text style={styles.optionSubtitle}>Sounds, Previews, Alerts</Text>
+                        </View>
+                    </TouchableOpacity>
+
                     <TouchableOpacity style={styles.optionRow} onPress={() => navigation.navigate('LanguageSettings')}>
                         <View style={[styles.optionIconContainer, { backgroundColor: '#b388ff' }]}>
                             <Ionicons name="globe" size={20} color="#FFF" />

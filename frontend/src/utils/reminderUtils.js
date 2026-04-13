@@ -5,14 +5,6 @@ try {
   // Expo SDK 53 removed Android Push functionality from Expo Go. We dynamically require to avoid RedBox crash.
   Notifications = require('expo-notifications');
   
-  // Configure how notifications behave when the app is in the foreground
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: false,
-    }),
-  });
 } catch (error) {
   console.log("Expo Notifications are not supported natively in this environment.");
 }

@@ -11,9 +11,9 @@ import LoginScreen from './src/screens/LoginScreen';
 import VerifyOTPScreen from './src/screens/VerifyOTPScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import FriendsScreen from './src/screens/FriendsScreen';
-import ChatScreen from './src/screens/ChatScreen';
 import CallScreen from './src/screens/CallScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+import * as Notifications from 'expo-notifications';
 import ActivityScreen from './src/screens/ActivityScreen';
 import EditProfileScreen from './src/screens/EditProfileScreen';
 import FriendProfileScreen from './src/screens/FriendProfileScreen';
@@ -23,6 +23,7 @@ import LanguageSettingsScreen from './src/screens/LanguageSettingsScreen';
 import VerifyPINScreen from './src/screens/VerifyPINScreen';
 import CreateGroupScreen from './src/screens/CreateGroupScreen';
 import GroupChatScreen from './src/screens/GroupChatScreen';
+import NotificationSettingsScreen from './src/screens/NotificationSettingsScreen';
 import { useCallStore } from './src/store/callStore';
 import { useOfflineP2pStore } from './src/store/offlineP2pStore';
 import { usePreferencesStore } from './src/store/preferencesStore';
@@ -75,8 +76,25 @@ export default function App() {
   const { initNetworkMonitor, initP2P } = useOfflineP2pStore();
   const { theme, appLockEnabled } = usePreferencesStore();
   const colors = getThemeColors(theme);
+  const { notificationsEnabled, notificationSounds, vibrationEnabled, showPreviews } = usePreferencesStore();
   
   const [isLocked, setIsLocked] = React.useState(false);
+
+  // Set up dynamic notification handler
+  useEffect(() => {
+    Notifications.setNotificationHandler({
+      handleNotification: async (notification) => {
+        // If global notifications are off, do nothing
+        if (!notificationsEnabled) return { shouldShowAlert: false, shouldPlaySound: false, shouldSetBadge: false };
+
+        return {
+          shouldShowAlert: true,
+          shouldPlaySound: notificationSounds,
+          shouldSetBadge: false,
+        };
+      },
+    });
+  }, [notificationsEnabled, notificationSounds]);
 
   useEffect(() => {
     bootstrapAuth();
@@ -225,6 +243,11 @@ export default function App() {
             <Stack.Screen 
               name="LanguageSettings" 
               component={LanguageSettingsScreen} 
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+              name="NotificationSettings" 
+              component={NotificationSettingsScreen} 
               options={{ headerShown: false }}
             />
           </>
