@@ -16,6 +16,8 @@ export default function NotificationSettingsScreen({ navigation }) {
         showPreviews,
         notificationSounds,
         vibrationEnabled,
+        setNotificationsEnabled,
+        setShowPreviews,
         setNotificationSounds,
         setVibrationEnabled,
         activeReminders,
