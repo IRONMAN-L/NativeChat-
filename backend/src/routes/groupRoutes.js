@@ -1,3 +1,4 @@
+const express = require('express');
 const { createGroup, getUserGroups, getGroupHistory, updateGroup, addMembers, leaveGroup, clearGroupHistory, toggleStarGroup } = require('../controllers/groupController');
 const { protect } = require('../middlewares/authMiddleware');
 
